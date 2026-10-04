@@ -88,7 +88,7 @@ export async function loadOperatorPolicy(root: string): Promise<OperatorPolicy> 
   return operatorPolicySchema.parse(JSON.parse(await readFile(path, "utf8")));
 }
 
-/** The loopback instance lends USDC against Base USDC; both use six decimals. */
+/** The supported pair uses USDC with six decimals on both networks. */
 export function compileQuotePolicy(value: unknown) {
   const config = operatorPolicySchema.parse(value);
   const maxPrincipal = parseUnits(config.max_loan_amount, 6);

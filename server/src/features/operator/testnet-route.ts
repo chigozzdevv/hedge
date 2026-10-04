@@ -1,10 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { addressSchema, chainSchema, loanRequestSchema } from "@hedge/schema";
+import { addressSchema, chainSchema } from "@hedge/schema";
 import type { Address, Hex } from "viem";
-import type { TestnetService } from "./testnet-service.js";
+import type { OperatorRuntime } from "./operator-runtime.js";
 import { env, localTestOrigins } from "../../shared/config/env.js";
 import { HedgeHttpError } from "../../shared/http/http.errors.js";
+import { offerRequest } from "./offer-request.js";
 import { hedgeLogger } from "../../shared/logging/hedge-logger.js";
 
 const transaction = z.strictObject({
@@ -18,27 +19,7 @@ const transaction = z.strictObject({
   key: z.string().min(1).max(256),
   label: z.string().min(1).max(100),
 });
-const baseUnits = z
-  .string()
-  .regex(/^[1-9]\d{0,77}$/)
-  .transform((value) => BigInt(value))
-  .pipe(
-    z
-      .bigint()
-      .positive()
-      .max((1n << 256n) - 1n),
-  );
-const offerRequest = z.strictObject({
-  request: loanRequestSchema.extend({
-    funding: loanRequestSchema.shape.funding.extend({ amount: baseUnits }),
-    collateral: loanRequestSchema.shape.collateral
-      .unwrap()
-      .extend({ amount: baseUnits })
-      .optional(),
-  }),
-  base_owner: addressSchema,
-});
-export function testnetRoute(app: FastifyInstance, service: TestnetService) {
+export function testnetRoute(app: FastifyInstance, service: OperatorRuntime) {
   const allowedOrigins = localTestOrigins();
   const attempt = async <T>(
     operation: string,

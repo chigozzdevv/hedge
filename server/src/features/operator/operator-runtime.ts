@@ -32,10 +32,15 @@ const whbar = "0x0000000000000000000000000000000000003ad2" as Address;
 const wrapper = "0x0000000000000000000000000000000000003ad1" as Address;
 
 /** Offers bind each borrower's wallets; local test signing remains limited to its own wallets. */
-export async function createTestnetService(root: string, configuredPolicy?: OperatorPolicy) {
+export async function createOperatorRuntime(
+  root: string,
+  configuredPolicy?: OperatorPolicy,
+  options: { localWallet?: boolean } = {},
+) {
+  const localWallet = options.localWallet === true;
   const policyConfig = configuredPolicy ?? (await loadOperatorPolicy(root));
   const config = loadPublicConfig(root);
-  {
+  if (localWallet) {
     const operatorUrl = new URL(config.operator_url);
     if (
       operatorUrl.protocol !== "http:" ||
@@ -46,6 +51,11 @@ export async function createTestnetService(root: string, configuredPolicy?: Oper
       operatorUrl.hash
     )
       throw new Error("Local testnet operator requires an explicit loopback /testnet URL");
+  }
+  if (!localWallet) {
+    const url = new URL(config.operator_url);
+    if (url.protocol !== "https:" || url.pathname !== "/operator")
+      throw new Error("Public operator requires an HTTPS /operator URL");
   }
   const manifest = config.deployment;
   const operator = config.operator as Address;
@@ -103,6 +113,13 @@ export async function createTestnetService(root: string, configuredPolicy?: Oper
     session,
     mode: "local-test-wallet",
   };
+  const publicProfile = {
+    config,
+    assets: profile.assets,
+    policy: profile.policy,
+    dex: profile.dex,
+    mode: "wallet" as const,
+  };
   let offersTail: Promise<unknown> = Promise.resolve();
   const discovery = async (request: LoanRequest, baseOwner: string): Promise<Hex[]> => {
     const recipient = request.funding.recipient.address as Address;
@@ -157,6 +174,16 @@ export async function createTestnetService(root: string, configuredPolicy?: Oper
         matches.push(id);
     }
     if (matches.length) return matches;
+    if (!localWallet) {
+      const available = await reader.clients.base.readContract({
+        address: collateral,
+        abi: tokenAbi,
+        functionName: "balanceOf",
+        args: [owner],
+      });
+      if (available < policy.quote(request.funding.amount).collateralAmount)
+        throw new Error("Base wallet does not hold the required collateral");
+    }
     // Replace only this wallet pair's unused offers; other borrowers retain their quotes.
     for (const id of open) {
       const withdrawn = await signer.send(
@@ -225,10 +252,12 @@ export async function createTestnetService(root: string, configuredPolicy?: Oper
     return job;
   };
   const currentRelay = createCcipRelay(reader, signer);
-  const legacy = await createLegacyRelay(root, config, signer);
+  const legacy = localWallet ? await createLegacyRelay(root, config, signer) : undefined;
   const relay = async (id: string) => {
     try {
-      await reader.loan(id);
+      const loan = await reader.loan(id);
+      if (!localWallet && !sameAddress(loan.agreement.operator, operator))
+        throw new Error("Loan belongs to another operator");
     } catch (error) {
       if (
         legacy &&
@@ -391,6 +420,7 @@ export async function createTestnetService(root: string, configuredPolicy?: Oper
   return {
     reader,
     profile,
+    publicProfile,
     session,
     legacy,
     discover,
@@ -398,9 +428,10 @@ export async function createTestnetService(root: string, configuredPolicy?: Oper
     borrower,
     loans,
     async send(tx: EvmTransaction) {
+      if (!localWallet) throw new Error("Server wallet signing is disabled");
       await validateBorrower(tx);
       return signer.send({ ...tx, key: `${manifest.instance_id}:borrower:${tx.key}` }, true);
     },
   };
 }
-export type TestnetService = Awaited<ReturnType<typeof createTestnetService>>;
+export type OperatorRuntime = Awaited<ReturnType<typeof createOperatorRuntime>>;

@@ -14,12 +14,14 @@ import {
 } from "./features/collateral/collateral.index.js";
 import { createOperatorService, operatorRoute } from "./features/operator/operator.index.js";
 import { testnetRoute } from "./features/operator/testnet-route.js";
-import type { TestnetService } from "./features/operator/testnet-service.js";
+import { publicOperatorRoute } from "./features/operator/public-route.js";
+import type { OperatorRuntime } from "./features/operator/operator-runtime.js";
 export interface HedgeAppOptions {
   readiness?: () => Promise<boolean>;
   corsOrigins?: readonly string[];
   protocol?: HedgeChainConfig;
-  testnet?: TestnetService;
+  testnet?: OperatorRuntime;
+  operator?: OperatorRuntime;
 }
 export function buildHedgeApp(options: HedgeAppOptions = {}) {
   const app = Fastify({ logger: false, bodyLimit: 64 * 1024 });
@@ -33,6 +35,7 @@ export function buildHedgeApp(options: HedgeAppOptions = {}) {
   collateralRoute(app, createCollateralService(chain));
   operatorRoute(app, createOperatorService(chain));
   if (options.testnet) testnetRoute(app, options.testnet);
+  if (options.operator) publicOperatorRoute(app, options.operator);
   const origins = new Set(options.corsOrigins ?? env.corsOrigins);
   const allowed = requestLimiter(120, 60_000);
   app.addHook("onRequest", async (request, reply) => {

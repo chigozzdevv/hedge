@@ -1,10 +1,14 @@
 import { decodeEventLog, type Hex } from "viem";
 import { hedgeLendingAbi } from "@hedge/bindings";
-import type { EvmHedgeReader } from "@hedge/sdk";
+import { sameAddress, type EvmHedgeReader } from "@hedge/sdk";
 import { hedgeLogger } from "../../shared/logging/hedge-logger.js";
 
 /** Explicitly registered discovery worker. It sponsors existing obligations, never authorizes outcomes. */
-export function startCcipWorker(reader: EvmHedgeReader, relay: (id: string) => Promise<void>) {
+export function startCcipWorker(
+  reader: EvmHedgeReader,
+  relay: (id: string) => Promise<void>,
+  operator?: string,
+) {
   let running = false,
     stopped = false,
     cursor = reader.config.startBlock.hedera;
@@ -21,7 +25,12 @@ export function startCcipWorker(reader: EvmHedgeReader, relay: (id: string) => P
             data: log.data,
             topics: log.topics,
           });
-          if (event.eventName === "LoanAccepted") ids.add(event.args.loanId);
+          if (
+            event.eventName === "LoanAccepted" &&
+            (!operator ||
+              sameAddress((await reader.loan(event.args.loanId)).agreement.operator, operator))
+          )
+            ids.add(event.args.loanId);
         } catch {
           /* Unrelated event. */
         }

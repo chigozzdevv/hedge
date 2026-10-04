@@ -7,7 +7,7 @@ import { stopWorkers } from "./shared/queue/queue.worker.js";
 import { hedgeLogger } from "./shared/logging/hedge-logger.js";
 import { appDirectory } from "./shared/config/workspace.js";
 import { resolve } from "node:path";
-import { createTestnetService } from "./features/operator/testnet-service.js";
+import { createOperatorRuntime } from "./features/operator/operator-runtime.js";
 import { loadOperatorPolicy } from "./features/operator/quote-policy.js";
 import { startCcipWorker } from "./features/credit/ccip-worker.js";
 import { loadPublicConfig } from "./shared/config/hedge-config.js";
@@ -20,12 +20,19 @@ async function startHedgeServer(): Promise<void> {
   loadPublicConfig(root);
   const policy = await loadOperatorPolicy(root);
   if (env.databaseDriver !== "none") await connectDatabase();
-  const testnet = localTest ? await createTestnetService(root, policy) : undefined;
+  if (env.databaseDriver === "none") throw new Error("Operator storage must be configured");
+  const operator = await createOperatorRuntime(root, policy, { localWallet: localTest });
+  const testnet = localTest ? operator : undefined;
   const app = buildHedgeApp({
     testnet,
+    ...(!localTest ? { operator } : {}),
     ...(testnet ? { corsOrigins: localTestOrigins() } : {}),
   });
-  const stopCcip = testnet ? startCcipWorker(testnet.reader, testnet.relay) : undefined;
+  const stopCcip = startCcipWorker(
+    operator.reader,
+    operator.relay,
+    operator.publicProfile.config.operator,
+  );
   const stopLegacy = testnet?.legacy
     ? startCcipWorker(testnet.legacy.reader, testnet.legacy.relay)
     : undefined;
@@ -54,7 +61,12 @@ async function startHedgeServer(): Promise<void> {
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
 }
-void startHedgeServer().catch(() => {
+void startHedgeServer().catch((error: unknown) => {
   process.exitCode = 1;
-  hedgeLogger.error("hedge-server-start-failed");
+  hedgeLogger.error("hedge-server-start-failed", {
+    reason: (error instanceof Error ? error.message : "Startup failed").replace(
+      /(?:mongodb(?:\+srv)?|postgres(?:ql)?):\/\/\S+/g,
+      "[database URL redacted]",
+    ),
+  });
 });

@@ -8,14 +8,13 @@ import {
   type ClientConfig,
   type EvmWallet,
 } from "@hedge/sdk";
-import { hashSchema } from "@hedge/schema";
+import { hashSchema, offerAuthorizationMessage, type LoanRequest } from "@hedge/schema";
 import { createHedgeModal } from "../modal/modal-controller";
 import { browserJournal } from "./browser-journal";
 
 export interface HedgeSetup {
   wallet: EvmWallet | ((reader: EvmHedgeReader) => EvmWallet);
   config?: string | ClientConfig;
-  /** Optional authenticated HTTP transport. Credentials never belong in public config. */
   request?: typeof fetch;
 }
 
@@ -35,14 +34,60 @@ export async function setupHedge(options: HedgeSetup, signal?: AbortSignal) {
   const wallet = typeof options.wallet === "function" ? options.wallet(reader) : options.wallet;
   const { journal, restore } = browserJournal(config.deployment.instance_id, config.operator);
   const post = async (path: string, body: unknown): Promise<unknown> => {
-    const response = await request(`${config.operator_url.replace(/\/$/, "")}/${path}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body, (_key, value) =>
-        typeof value === "bigint" ? String(value) : value,
-      ),
-      signal: AbortSignal.timeout(60_000),
-    });
+    const send = (value: unknown) =>
+      request(`${config.operator_url.replace(/\/$/, "")}/${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(value, (_key, value) =>
+          typeof value === "bigint" ? String(value) : value,
+        ),
+        signal: AbortSignal.timeout(60_000),
+      });
+    let response = await send(body);
+    if (path === "offers" && response.status === 401) {
+      const challenge = (await response.json()) as { error?: string; expires_at?: number };
+      const now = Math.floor(Date.now() / 1000);
+      if (
+        challenge.error !== "wallet-authorization-required" ||
+        !Number.isInteger(challenge.expires_at) ||
+        challenge.expires_at! <= now ||
+        challenge.expires_at! > now + 300
+      )
+        throw new HedgeError("OPERATOR_UNAVAILABLE", "Invalid operator authorization challenge");
+      if (!wallet.signMessage)
+        throw new HedgeError(
+          "WALLET_UNAVAILABLE",
+          "Your wallet must support message signing to request a loan offer",
+        );
+      const input = body as { request: LoanRequest; base_owner: string };
+      const [borrower, owner] = await Promise.all([wallet.wallet("hedera"), wallet.wallet("base")]);
+      if (
+        !borrower ||
+        !owner ||
+        borrower.address.toLowerCase() !== input.request.funding.recipient.address.toLowerCase() ||
+        owner.address.toLowerCase() !== input.base_owner.toLowerCase()
+      )
+        throw new HedgeError("WALLET_UNAVAILABLE", "Reconnect the wallets for this loan request");
+      const message = offerAuthorizationMessage({
+        ...input,
+        operator_url: config.operator_url,
+        instance_id: config.deployment.instance_id,
+        expires_at: challenge.expires_at!,
+      });
+      const borrower_signature = await wallet.signMessage("hedera", message);
+      const owner_signature =
+        owner.address.toLowerCase() === borrower.address.toLowerCase()
+          ? borrower_signature
+          : await wallet.signMessage("base", message);
+      response = await send({
+        ...input,
+        authorization: {
+          expires_at: challenge.expires_at,
+          borrower_signature,
+          owner_signature,
+        },
+      });
+    }
     if (!response.ok)
       throw new HedgeError(
         "OPERATOR_UNAVAILABLE",

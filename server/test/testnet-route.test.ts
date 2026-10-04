@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { buildHedgeApp } from "../src/app.js";
 import { env } from "../src/shared/config/env.js";
-import type { TestnetService } from "../src/features/operator/testnet-service.js";
+import type { OperatorRuntime } from "../src/features/operator/operator-runtime.js";
 const headers = {
   host: `127.0.0.1:${env.port}`,
   origin: "http://127.0.0.1:3002",
@@ -15,7 +15,7 @@ function fixture() {
     relay: vi.fn(async () => undefined),
     discover: vi.fn(async () => [`0x${"c".repeat(64)}`]),
     loans: async () => [],
-  } as unknown as TestnetService;
+  } as unknown as OperatorRuntime;
   return { app: buildHedgeApp({ testnet: service, corsOrigins: [headers.origin] }), service };
 }
 describe("explicit local test wallet boundary", () => {

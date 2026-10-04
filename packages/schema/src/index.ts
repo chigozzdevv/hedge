@@ -4,3 +4,4 @@ export * from "./wallet.schema";
 export * from "./client-config";
 export * from "./deployment-record";
 export * from "./decimal-amount";
+export * from "./offer-auth";

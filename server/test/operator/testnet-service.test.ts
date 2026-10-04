@@ -1,5 +1,5 @@
 import { testRecord, testConfig } from "../../../packages/schema/test/config-fixture.js";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,7 +14,7 @@ import { hedgeLendingAbi, hedgeVaultAbi } from "@hedge/bindings";
 import { tokenAbi, type EvmTransaction } from "@hedge/sdk";
 import { privateKeyToAccount } from "viem/accounts";
 import { compileQuotePolicy } from "../../src/features/operator/quote-policy.js";
-import { createTestnetService } from "../../src/features/operator/testnet-service.js";
+import { createOperatorRuntime } from "../../src/features/operator/operator-runtime.js";
 
 const mocks = vi.hoisted(() => ({
   read: vi.fn(),
@@ -36,6 +36,7 @@ vi.mock("@hedge/sdk", async (original) => {
       lendingAbi = hedgeLendingAbi;
       vaultAbi = hedgeVaultAbi;
       clients = {
+        base: { readContract: mocks.read },
         hedera: {
           getCode: async () => "0x6000",
           getBlock: async () => ({ timestamp: 1000n }),
@@ -137,7 +138,15 @@ afterEach(() => {
 });
 async function service(change: Record<string, unknown> = {}) {
   writeFileSync(join(root, ".hedge/operator.json"), JSON.stringify({ ...defaults, ...change }));
-  return createTestnetService(root);
+  return createOperatorRuntime(root, undefined, { localWallet: true });
+}
+async function publicService() {
+  const configPath = join(root, ".hedge/hedge.config.json");
+  const config = JSON.parse(readFileSync(configPath, "utf8"));
+  config.operator_url = "https://operator.example/operator";
+  writeFileSync(configPath, JSON.stringify(config));
+  writeFileSync(join(root, ".hedge/operator.json"), JSON.stringify(defaults));
+  return createOperatorRuntime(root);
 }
 const request = (amount: bigint, address = local) => ({
   funding: {
@@ -178,6 +187,26 @@ function approval(
 }
 
 describe("configured loopback quote and signing service", () => {
+  it("public metadata excludes local borrower credentials and server signing is disabled", async () => {
+    const operator = await publicService();
+    expect(operator.publicProfile.mode).toBe("wallet");
+    expect(operator.publicProfile).not.toHaveProperty("session");
+    expect(operator.publicProfile).not.toHaveProperty("borrower");
+    await expect(operator.send(approval("hedera", 100n, "repayment"))).rejects.toThrow("disabled");
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+  it("public relays refuse loans belonging to another operator", async () => {
+    const operator = await publicService();
+    mocks.loan.mockResolvedValue({ agreement: { operator: other } });
+    await expect(operator.relay(loanId)).rejects.toThrow("another operator");
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+  it("requires the public collateral wallet to hold the agreed amount before publishing", async () => {
+    const operator = await publicService();
+    mocks.read.mockResolvedValue(0n);
+    await expect(operator.discover(request(100000n), local)).rejects.toThrow("required collateral");
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
   it("refuses assets that differ from the selected contracts before publishing", async () => {
     await expect(service({ loan_asset: { ...defaults.loan_asset, chain_id: 1 } })).rejects.toThrow(
       "must match",

@@ -123,6 +123,35 @@ describe("provider setup and recovery", () => {
       code: "OPERATOR_UNAVAILABLE",
     });
   });
+  it("answers a public offer challenge using the connected wallet and exact terms", async () => {
+    vi.spyOn(EvmHedgeReader.prototype, "verifyDeployment").mockResolvedValue();
+    const appWallet = wallet();
+    appWallet.wallet = vi.fn(async () => ({ chain_id: 296, address: config.operator }));
+    appWallet.signMessage = vi.fn(async () => `0x${"5".repeat(130)}` as const);
+    const expires_at = Math.floor(Date.now() / 1000) + 120;
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ error: "wallet-authorization-required", expires_at }, { status: 401 }),
+      )
+      .mockResolvedValueOnce(Response.json({ ids: [loanId] }));
+    const session = await setupHedge({ config, wallet: appWallet, request });
+    const funding = {
+      token: config.deployment.hedera.contract,
+      amount: 100n,
+      recipient: { address: config.operator, account_id: "0.0.123" },
+    };
+    expect(await session.adapter.options.discover({ funding }, config.operator)).toEqual([loanId]);
+    expect(appWallet.signMessage).toHaveBeenCalledTimes(1);
+    expect(appWallet.signMessage).toHaveBeenCalledWith(
+      "hedera",
+      expect.stringContaining("Loan amount (base units): 100"),
+    );
+    expect(JSON.parse(request.mock.calls[1][1]!.body as string).authorization).toMatchObject({
+      expires_at,
+    });
+    expect(appWallet.send).not.toHaveBeenCalled();
+  });
   it("refuses corrupted saved hashes/loans instead of starting another debt", () => {
     const prefix = `hedge:${config.deployment.instance_id}:${config.operator.toLowerCase()}:`;
     localStorage.setItem(`${prefix}loan`, "broken");

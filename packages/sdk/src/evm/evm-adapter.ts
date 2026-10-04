@@ -32,6 +32,7 @@ export interface EvmTransaction {
 export interface EvmWallet {
   wallet(chain: Chain): Promise<WalletIdentity | null>;
   connect(chain: Chain): Promise<WalletIdentity>;
+  signMessage?(chain: Chain, message: string): Promise<Hex>;
   /** Must obtain explicit wallet approval and preserve the hash immediately after broadcast. */
   send(transaction: EvmTransaction): Promise<Hex>;
 }
