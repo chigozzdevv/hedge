@@ -12,6 +12,13 @@ process.env["NEXT_PUBLIC_SITE_URL"] ||=
 const config: NextConfig = {
   agentRules: false,
   poweredByHeader: false,
+  outputFileTracingRoot: resolve(process.cwd(), "../.."),
+  outputFileTracingIncludes: {
+    "/hedge.config.json": [".hedge/hedge.config.json", "../../deployments/testnet.json"],
+  },
+  outputFileTracingExcludes: {
+    "/*": [".hedge/wallets.json", "../../.env"],
+  },
   transpilePackages: ["@hedge/frontend", "@hedge/sdk", "@hedge/schema", "@hedge/bindings"],
 };
 
