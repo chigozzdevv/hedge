@@ -1,0 +1,18 @@
+{
+  "loan_asset": {
+    "chain_id": 296,
+    "symbol": "USDC",
+    "address": "0x0000000000000000000000000000000000001549"
+  },
+  "accepted_collateral": {
+    "chain_id": 84532,
+    "symbol": "USDC",
+    "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  },
+  "max_loan_amount": "1",
+  "collateral_ratio": "2",
+  "financing_charge_percent": "2",
+  "term_days": 30,
+  "repay_with_collateral": true,
+  "eligible_borrowers": []
+}

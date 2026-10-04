@@ -1,0 +1,21 @@
+.swap-page {
+  min-height: calc(100dvh - 88px);
+  display: grid;
+  place-items: center;
+  padding: 48px 16px;
+  box-sizing: border-box;
+  align-content: center;
+  gap: 12px;
+}
+.runtime-network {
+  font-size: 12px;
+  color: light-dark(#707681, #a1a7b2);
+  text-align: center;
+}
+.wallet-target {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.wallet-approval {
+  max-width: 360px;
+}

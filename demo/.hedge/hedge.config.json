@@ -1,0 +1,10 @@
+{
+  "deployment_file": "deployments/testnet.json",
+  "operator": "0xB011652BC1241D588357D9207F546E7D482fF462",
+  "operator_url": "http://127.0.0.1:3003/testnet",
+  "rpc": {
+    "hedera": "https://testnet.hashio.io/api",
+    "base": "https://sepolia.base.org"
+  },
+  "mirror_url": "https://testnet.mirrornode.hedera.com"
+}
