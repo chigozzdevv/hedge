@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./shared/config/load-env.js";
 import { buildHedgeApp } from "./app.js";
 import { env, assertServerConfig, localTestOrigins } from "./shared/config/env.js";
 import { connectDatabase, closeDatabase } from "./shared/database/database.client.js";

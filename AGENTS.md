@@ -35,6 +35,8 @@ documentation, examples and generated output.
   wallets and binds the supplied public settings to their operator on first initialization.
   Signing recovery, confirmed liquidity receipts, process state and logs persist in configured
   MongoDB/PostgreSQL; commands fail before signing when storage is unavailable.
+  The repository root .env is the only local environment file for the CLI, server and website;
+  .env.example is its template. Keep private settings out of browser code and public config.
 - `server/src/features`: intent/offer/credit/collateral/operator modules and their controller,
   schema, service, route and index files. Persistent features own model/repo files;
   credit/collateral workers stay in their feature folders.

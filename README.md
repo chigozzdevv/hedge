@@ -76,7 +76,7 @@ Recorded timing: **165s acceptance → payout**, **42s lock → payout**, **691s
 lifecycle**, including user actions. The tests used separate gas/repayment buffers.
 Receipt links identify the contracts used in each run. These are testnet results.
 
-Run `npm run check` for local validation. Last verified coverage: **327 TypeScript /
+Run `npm run check` for local validation. Last verified coverage: **333 TypeScript /
 150 Solidity tests**, covering lifecycle, HTS/CCIP failures, collateral settlement, cancellation races,
 replay/order attacks and fuzzing. Real database checks passed separately: **11 PostgreSQL /
 10 MongoDB**, including liquidity recovery, command ownership and expired signer leases.
@@ -112,13 +112,13 @@ npm ci
 npm run build:contracts
 npm run codegen
 npm run build:packages
-cp server/.env.example server/.env
+cp .env.example .env
 cd packages/nextjs
 npm run hedge -- init
 ```
 
 Run Hedge commands from your app folder (`packages/nextjs/` here). The repository command also
-uses `packages/nextjs/` by default. Keep an existing `server/.env` when upgrading.
+uses `packages/nextjs/` by default. Keep an existing root `.env` when upgrading.
 `init` creates or reuses the operator/relay wallets and prints their addresses.
 On the first initialization it fills the operator address in the supplied settings.
 Borrowers connect their own wallets.
@@ -199,17 +199,13 @@ accepted loans retain their agreed terms.
 Startup reads these files without overwriting your edits. The website resolves them into
 public config at `/hedge.config.json`.
 
-`server/.env` configures storage and services:
+The root `.env` is shared by the CLI, server and website. Set your database connection
+and enable the testnet service:
 
 ```dotenv
 DATABASE_DRIVER=postgres
 DATABASE_URL=postgresql://hedge:CHANGE_ME@127.0.0.1:5432/hedge
 
-HOST=127.0.0.1
-PORT=3003
-FRONTEND_HOST=127.0.0.1
-FRONTEND_PORT=3002
-CORS_ORIGINS=http://127.0.0.1:3002
 HEDGE_LOCAL_TESTNET=1
 ```
 
@@ -221,7 +217,9 @@ DATABASE_URL=mongodb://127.0.0.1:27017/hedge
 ```
 
 Startup applies migrations/indexes. Transactions, receipts, process state and logs
-go to your configured database. Redis is optional. Wallet keys stay in
+go to your configured database. `PORT` and `FRONTEND_PORT` select the service ports;
+startup derives the local URLs and browser origin. `NEXT_PUBLIC_SITE_URL` is optional
+for a hosted website. Redis is optional. Wallet keys stay in
 `packages/nextjs/.hedge/wallets.json`.
 
 <details>

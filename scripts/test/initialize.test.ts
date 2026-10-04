@@ -37,7 +37,7 @@ describe("operator initialization", () => {
       );
     expect(wallets.hedera.address).not.toBe(wallets.base.address);
     expect(statSync(join(root, ".hedge/wallets.json")).mode & 0o777).toBe(0o600);
-    expect(existsSync(join(root, "server/.env"))).toBe(false);
+    expect(existsSync(join(root, ".env"))).toBe(false);
     expect(existsSync(join(root, "operator.json"))).toBe(false);
     expect(existsSync(join(root, "deployments"))).toBe(false);
     expect(existsSync(join(root, "hedge.config.json"))).toBe(false);

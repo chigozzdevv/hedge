@@ -50,19 +50,20 @@ export default function DocsPage() {
               Python 3 and curl.
             </p>
             <CodeBlock
-              code={`npm ci\nnpm run build:contracts\nnpm run codegen\nnpm run build:packages\ncp server/.env.example server/.env`}
+              code={`npm ci\nnpm run build:contracts\nnpm run codegen\nnpm run build:packages\ncp .env.example .env`}
             />
             <p>
-              Keep an existing <code>server/.env</code> when upgrading. Configure storage and the
-              testnet service:
+              The root <code>.env</code> is shared by the CLI, server and website. Keep it when
+              upgrading. Set your database connection and enable the testnet service:
             </p>
             <CodeBlock
-              label="server/.env"
-              code={`DATABASE_DRIVER=postgres\nDATABASE_URL=postgresql://hedge:CHANGE_ME@127.0.0.1:5432/hedge\nHEDGE_LOCAL_TESTNET=1\nHOST=127.0.0.1\nPORT=3003\nFRONTEND_HOST=127.0.0.1\nFRONTEND_PORT=3002\nCORS_ORIGINS=http://127.0.0.1:3002`}
+              label=".env"
+              code={`DATABASE_DRIVER=postgres\nDATABASE_URL=postgresql://hedge:CHANGE_ME@127.0.0.1:5432/hedge\nHEDGE_LOCAL_TESTNET=1`}
             />
             <p>
               Use your PostgreSQL or MongoDB connection URL. Transaction records and liquidity
-              receipts go to your database.
+              receipts go to your database. The supplied ports are 3003 for the server and 3002 for
+              the app; startup derives the local URLs and browser origin.
             </p>
             <p>
               Configure loan rules in <code>packages/nextjs/.hedge/operator.json</code>. Leave{" "}

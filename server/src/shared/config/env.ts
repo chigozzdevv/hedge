@@ -1,5 +1,5 @@
 export const env = {
-  port: Number(process.env["PORT"] ?? 3001),
+  port: Number(process.env["PORT"] ?? 3003),
   host: process.env["HOST"] ?? "127.0.0.1",
   databaseDriver: process.env["DATABASE_DRIVER"] ?? "none",
   databaseUrl: process.env["DATABASE_URL"] ?? "",

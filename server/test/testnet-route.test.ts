@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { buildHedgeApp } from "../src/app.js";
+import { env } from "../src/shared/config/env.js";
 import type { TestnetService } from "../src/features/operator/testnet-service.js";
 const headers = {
-  host: "127.0.0.1:3001",
+  host: `127.0.0.1:${env.port}`,
   origin: "http://127.0.0.1:3002",
   "x-hedge-session": "fixture-session",
 };

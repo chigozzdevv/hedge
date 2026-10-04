@@ -5,7 +5,6 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync }
 import { hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseEnv } from "node:util";
 import { setTimeout as delay } from "node:timers/promises";
 
 const entry = fileURLToPath(import.meta.url);
@@ -25,12 +24,9 @@ function checkInterrupted(): void {
   operationSignal?.throwIfAborted();
 }
 
-export function loadEnvironment(
-  path = process.env["HEDGE_ENV_FILE"] ?? join(root, "server/.env"),
-): void {
+export function loadEnvironment(path = process.env["HEDGE_ENV_FILE"] ?? join(root, ".env")): void {
   if (!existsSync(path)) return;
-  for (const [key, value] of Object.entries(parseEnv(readFileSync(path, "utf8"))))
-    process.env[key] ??= value;
+  process.loadEnvFile(path);
 }
 export function managerConfig(workspace = app) {
   const serverPort = Number(process.env["PORT"] ?? 3003);
@@ -76,6 +72,9 @@ export function managerConfig(workspace = app) {
         localTest,
         app: "nextjs",
         origins: environment.CORS_ORIGINS,
+        siteUrl: environment["NEXT_PUBLIC_SITE_URL"],
+        maximumGasFee: environment["HEDGE_OPERATOR_MAX_FEE_HBAR"],
+        minimumGasReserve: environment["HEDGE_OPERATOR_MIN_HBAR"],
         prefix: environment["REDIS_PREFIX"],
         config: environment["HEDGE_DEPLOYMENT_FILE"],
         configContents: existsSync(
@@ -338,7 +337,7 @@ async function start(): Promise<void> {
   );
   assertServerConfig();
   if (env.databaseDriver === "none")
-    throw new Error("Configure DATABASE_DRIVER and DATABASE_URL in server/.env");
+    throw new Error("Configure DATABASE_DRIVER and DATABASE_URL in .env");
   if (config.localTest) localTestOrigins();
   const state = await readState();
   for (const name of names) {
@@ -584,12 +583,12 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   const [command = "start", ...rest] = args;
   if (command === "help" || command === "--help") {
     console.log(
-      "npm run hedge -- init\nnpm run hedge -- liquidity [status|deposit AMOUNT|withdraw AMOUNT]\nnpm run hedge -- start|stop|restart|deploy|logs [server|nextjs]\nConfiguration: app/.hedge/{wallets,operator,hedge.config}.json and server/.env",
+      "npm run hedge -- init\nnpm run hedge -- liquidity [status|deposit AMOUNT|withdraw AMOUNT]\nnpm run hedge -- start|stop|restart|deploy|logs [server|nextjs]\nConfiguration: app/.hedge/{wallets,operator,hedge.config}.json and .env",
     );
     return;
   }
   if (command === "init") {
-    if (rest.length) throw new Error("Use init; configure services in server/.env");
+    if (rest.length) throw new Error("Use init; configure services in .env");
     await withLock(init);
     return;
   }
@@ -607,7 +606,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     if (rest.length > 1 || (rest[0] && !names.includes(rest[0] as ServiceName)))
       throw new Error("Choose server or nextjs logs");
   } else {
-    if (rest.length) throw new Error("Configure deployment and services through server/.env");
+    if (rest.length) throw new Error("Configure deployment and services through .env");
     if (!["start", "deploy", "stop", "restart"].includes(command))
       throw new Error("Unknown command; use npm run hedge -- help");
   }
@@ -619,9 +618,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   const { env, assertServerConfig } = await import("../server/src/shared/config/env.js");
   assertServerConfig();
   if (env.databaseDriver === "none")
-    throw new Error(
-      "Configure DATABASE_DRIVER=mongodb or postgres and DATABASE_URL in server/.env",
-    );
+    throw new Error("Configure DATABASE_DRIVER=mongodb or postgres and DATABASE_URL in .env");
   try {
     await connectDatabase();
     if (command === "internal") await internal(rest[0], rest[1]);

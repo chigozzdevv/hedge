@@ -47,6 +47,16 @@ describe("platform management configuration", () => {
     vi.stubEnv("REDIS_PREFIX", "hedge-other");
     expect(managerConfig().configHash).not.toBe(second);
   });
+  it.each([
+    ["NEXT_PUBLIC_SITE_URL", "https://hedge.example"],
+    ["HEDGE_OPERATOR_MAX_FEE_HBAR", "3"],
+    ["HEDGE_OPERATOR_MIN_HBAR", "6"],
+  ])("requires restart when %s changes", (key, value) => {
+    vi.stubEnv(key, undefined);
+    const first = managerConfig().configHash;
+    vi.stubEnv(key, value);
+    expect(managerConfig().configHash).not.toBe(first);
+  });
   it("loads the single deployment record by default", () => {
     vi.stubEnv("HEDGE_DEPLOYMENT_FILE", undefined);
     expect(managerConfig().environment["HEDGE_DEPLOYMENT_FILE"]).toBe("deployments/testnet.json");

@@ -23,7 +23,7 @@ export function loadPublicConfig(root: string) {
   ] as const) {
     const value = process.env[name];
     if (value && !matches(value))
-      throw new Error(`Remove ${name} from server/.env; configure it in hedge.config.json`);
+      throw new Error(`Remove ${name} from .env; configure it in hedge.config.json`);
   }
   return config;
 }

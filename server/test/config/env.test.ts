@@ -1,9 +1,33 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
 });
 describe("Hedge server settings", () => {
+  it("loads the selected shared env file before server settings without replacing shell values", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "hedge-env-"));
+    const path = join(directory, ".env");
+    try {
+      writeFileSync(
+        path,
+        "PORT=3403\nDATABASE_DRIVER=postgres\nDATABASE_URL=postgresql://operator:test@db/hedge\n",
+      );
+      vi.stubEnv("HEDGE_ENV_FILE", path);
+      vi.stubEnv("PORT", "3303");
+      vi.stubEnv("DATABASE_DRIVER", undefined);
+      vi.stubEnv("DATABASE_URL", undefined);
+      await import("../../src/shared/config/load-env.js");
+      const { env } = await import("../../src/shared/config/env.js");
+      expect(env.port).toBe(3303);
+      expect(env.databaseDriver).toBe("postgres");
+      expect(env.databaseUrl).toBe("postgresql://operator:test@db/hedge");
+    } finally {
+      rmSync(directory, { recursive: true });
+    }
+  });
   it("needs no legacy contract, chain, signer or storage for health-only startup", async () => {
     for (const key of [
       "PORT",
