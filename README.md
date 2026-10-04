@@ -28,7 +28,7 @@ The supplied `packages/nextjs/.hedge/operator.json` sets:
 | ------------------- | -------------------- |
 | Loan asset          | USDC on Hedera       |
 | Accepted collateral | USDC on Base         |
-| Maximum loan        | 1 USDC               |
+| Maximum loan        | 10 USDC              |
 | Collateral required | 2× the loan amount   |
 | Financing charge    | 2%                   |
 | Repayment term      | 30 days from funding |
@@ -165,7 +165,7 @@ Git and never served to the browser.
     "symbol": "USDC",
     "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
   },
-  "max_loan_amount": "1",
+  "max_loan_amount": "10",
   "collateral_ratio": "2",
   "financing_charge_percent": "2",
   "term_days": 30,

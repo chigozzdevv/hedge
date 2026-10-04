@@ -67,7 +67,7 @@ export default function DocsPage() {
             <p>
               Configure loan rules in <code>packages/nextjs/.hedge/operator.json</code>. Leave{" "}
               <code>eligible_borrowers</code> empty to allow everyone, or add addresses to restrict
-              eligibility. The supplied terms allow up to 1 USDC, require 2× Base USDC collateral,
+              eligibility. The supplied terms allow up to 10 USDC, require 2× Base USDC collateral,
               charge 2% and set a 30-day term. Borrowers connect and sign with their own wallets.
             </p>
             <h3>Prepare your operator</h3>

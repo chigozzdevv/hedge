@@ -9,7 +9,7 @@
     "symbol": "USDC",
     "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
   },
-  "max_loan_amount": "1",
+  "max_loan_amount": "10",
   "collateral_ratio": "2",
   "financing_charge_percent": "2",
   "term_days": 30,
