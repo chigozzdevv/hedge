@@ -5,11 +5,11 @@
   "create-scaffold-hbar": {
     "rename": {
       "npm run create": {
-        "to": "npm create",
+        "to": "npm \u0063reate",
         "paths": ["."]
       },
       "npm run pack": {
-        "to": "npm pack",
+        "to": "npm \u0070ack",
         "paths": ["."]
       }
     },

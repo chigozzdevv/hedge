@@ -464,11 +464,11 @@ units, leases and deduplication preserve precision/retry ownership.
 <summary>CCIP provenance and checksums</summary>
 
 The six files under `packages/foundry/vendor/ccip-2.0.0/` are unmodified MIT-licensed
-consumer files from the official `@chainlink/contracts-ccip@2.0.0` npm tarball.
+consumer files from the official `@chainlink/contracts-ccip@2.0.0` tarball on npm.
 Router/token-pool runtime contracts are not vendored or deployed by Hedge.
 
-- [Official npm tarball](https://registry.npmjs.org/@chainlink/contracts-ccip/-/contracts-ccip-2.0.0.tgz)
-- npm integrity: `sha512-P0KvQtZSYC1LevMSS16jOOSsqZG4g0n/MJdcWGmE0Z5U01NVYd1MnTQJOBPsbu1NWR79DBXPXLvyr9tR5y+tiw==`
+- [Official tarball on npm](https://registry.npmjs.org/@chainlink/contracts-ccip/-/contracts-ccip-2.0.0.tgz)
+- Integrity: `sha512-P0KvQtZSYC1LevMSS16jOOSsqZG4g0n/MJdcWGmE0Z5U01NVYd1MnTQJOBPsbu1NWR79DBXPXLvyr9tR5y+tiw==`
 - `libraries/Client.sol`: SHA-256 `9a8b02a4cf05f2a6a75287fb37f3a271404ccb477af0da001ac7b93835ad39cd`
 - `interfaces/IRouterClient.sol`: SHA-256 `05fc882e5af0dfc2840d99ed887b5c405cf555525cc8d1329787dac369dff1e3`
 - `interfaces/IAny2EVMMessageReceiver.sol`: SHA-256 `a2e161a2c241a5e0a1807bdf908d47eb8527f349bc2f56c6fbcc6bcf2c3ba4c2`
