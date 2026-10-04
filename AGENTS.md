@@ -73,7 +73,7 @@ Do not edit the original Termbook checkout.
 
 ## Commands
 
-Node 20.19+, 22.13+, or 24+, npm and Foundry are required. Run `npm ci`, `npm run build:contracts`, `npm run codegen`, then
+Node 20.19+, 22.13+, or 24+, npm, and Foundry are required. Run `npm ci`, `npm run build:contracts`, `npm run codegen`, then
 `npm run check`. The initial compiler download needs network access. Use
 `npm run build:packages` for TypeScript-only work. `npm run check` builds packages
 before typechecking/testing because workspace imports resolve built outputs. The

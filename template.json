@@ -3,6 +3,16 @@
   "description": "Borrow USDC on Hedera against USDC collateral on Base using Chainlink CCIP.",
   "version": "0.1.0",
   "create-scaffold-hbar": {
+    "rename": {
+      "npm run create": {
+        "to": "npm create",
+        "paths": ["."]
+      },
+      "npm run pack": {
+        "to": "npm pack",
+        "paths": ["."]
+      }
+    },
     "capabilities": {
       "frontend": ["nextjs-app"],
       "solidityFramework": ["foundry"],
