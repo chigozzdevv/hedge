@@ -27,7 +27,7 @@ describe("shared website environment", () => {
       ])
         vi.stubEnv(key, undefined);
       const { default: config } = await import("../next.config.js");
-      expect(process.env["NEXT_PUBLIC_HEDGE_SERVER"]).toBe("http://127.0.0.1:3403");
+      expect(process.env["NEXT_PUBLIC_HEDGE_SERVER"]).toBeUndefined();
       expect(process.env["NEXT_PUBLIC_SITE_URL"]).toBe("http://127.0.0.1:3402");
       expect(config.env).toBeUndefined();
     } finally {

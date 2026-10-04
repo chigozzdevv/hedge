@@ -70,6 +70,12 @@ HEDGE_LOCAL_TESTNET=1`}
               and 3002 for the app; startup derives the local URLs and browser origin.
             </p>
             <p>
+              For a hosted backend, set <code>HEDGE_LOCAL_TESTNET=0</code>, use an HTTPS{" "}
+              <code>/operator</code> URL in <code>hedge.config.json</code>, and set{" "}
+              <code>CORS_ORIGINS</code> to your app URL. Borrowers authorize offers and sign
+              transactions with their own wallets; server wallet signing is disabled.
+            </p>
+            <p>
               Your app’s <code>.hedge</code> contains only <code>wallets.json</code>,{" "}
               <code>operator.json</code> and <code>hedge.config.json</code>. The wallets file
               contains unencrypted private keys; keep it private with permissions <code>0600</code>.

@@ -222,6 +222,10 @@ startup derives the local URLs and browser origin. `NEXT_PUBLIC_SITE_URL` is opt
 for a hosted website. Redis is optional. Wallet keys stay in
 `packages/nextjs/.hedge/wallets.json`.
 
+For a hosted backend, set `HEDGE_LOCAL_TESTNET=0`, use an HTTPS `/operator` URL
+in `hedge.config.json`, and set `CORS_ORIGINS` to your app URL. Borrowers authorize
+offer requests and sign transactions with their own wallets; server wallet signing is disabled.
+
 <details>
 <summary>Start PostgreSQL locally</summary>
 

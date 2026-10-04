@@ -65,7 +65,7 @@ export function RuntimeApp() {
       const client = reader.clients[tx.chain];
       const [gas, price] = await Promise.all([
         client.estimateGas({
-          account: profile.borrower.address as `0x${string}`,
+          account: profile.borrower!.address as `0x${string}`,
           to: tx.to,
           data: tx.data,
           value: tx.value ?? 0n,
@@ -99,7 +99,11 @@ export function RuntimeApp() {
               new Error("This page manages existing v2 loans. Open /demo for new borrowing."),
             );
           const headers = new Headers(init?.headers);
-          if (typeof input === "string" && input.startsWith(`${profile.config.operator_url}/`))
+          if (
+            profile.session &&
+            typeof input === "string" &&
+            input.startsWith(`${profile.config.operator_url}/`)
+          )
             headers.set("x-hedge-session", profile.session);
           return fetch(input, { ...init, headers });
         },

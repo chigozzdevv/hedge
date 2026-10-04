@@ -27,7 +27,6 @@ describe("platform management configuration", () => {
     vi.stubEnv("FRONTEND_PORT", "3302");
     vi.stubEnv("CORS_ORIGINS", "");
     const config = managerConfig();
-    expect(config.environment["NEXT_PUBLIC_HEDGE_SERVER"]).toBe("http://127.0.0.1:3303");
     expect(config.environment["CORS_ORIGINS"]).toBe("http://127.0.0.1:3302");
   });
   it("does not overwrite a supplied operator endpoint for local mode", () => {

@@ -15,24 +15,25 @@ import type {
   ClientConfig,
 } from "@hedge/sdk";
 import { sameAddress } from "@hedge/sdk";
+import { loadHedgeConfig } from "@hedge/sdk";
 
 export interface RuntimeProfile {
   config: ClientConfig;
-  borrower: { address: string; account_id?: string };
+  borrower?: { address: string; account_id?: string };
   assets: { loan: Address; collateral: Address };
   policy: { max_loan_amount: string };
   dex: { router: Address; whbar: Address; wrapper: Address; code_hash: Hex };
-  session: string;
-  mode: "local-test-wallet";
+  session?: string;
+  mode: "local-test-wallet" | "wallet";
 }
 export type TestWalletApproval = (tx: EvmTransaction) => Promise<boolean>;
-export const serverUrl = process.env["NEXT_PUBLIC_HEDGE_SERVER"] ?? "http://127.0.0.1:3003";
 export async function runtimeRequest<T>(
   path: string,
   session?: string,
   body?: unknown,
 ): Promise<T> {
-  const response = await fetch(`${serverUrl}/testnet/${path}`, {
+  const config = await loadHedgeConfig();
+  const response = await fetch(`${config.operator_url.replace(/\/$/, "")}/${path}`, {
     method: body ? "POST" : "GET",
     headers: {
       ...(body ? { "content-type": "application/json" } : {}),
@@ -117,13 +118,14 @@ export class RuntimeWallet implements EvmWallet {
     return selected;
   }
   async connect(chain: Chain) {
-    let address = this.profile.borrower.address;
+    let address = this.profile.borrower?.address;
     if (this.mode === "injected") {
       const accounts = await this.provider().request({ method: "eth_requestAccounts" });
       if (!accounts[0]) throw new Error("Choose a wallet account");
       address = accounts[0];
       await this.network(chain);
     }
+    if (!address) throw new Error("Local test wallet is unavailable");
     const wallet = {
       chain_id: this.profile.config.deployment[chain].chain_id,
       address,
@@ -133,6 +135,18 @@ export class RuntimeWallet implements EvmWallet {
     };
     this.selected.set(chain, wallet);
     return wallet;
+  }
+  async signMessage(chain: Chain, message: string): Promise<Hex> {
+    if (this.mode !== "injected") throw new Error("Message signing requires your own wallet");
+    const wallet = await this.wallet(chain);
+    if (!wallet) throw new Error(`Connect your ${chain} wallet`);
+    const accounts = await this.provider().request({ method: "eth_accounts" });
+    if (!accounts.some((address) => sameAddress(address, wallet.address)))
+      throw new Error("Wallet account changed before signing");
+    return createWalletClient({ transport: custom(this.provider()) }).signMessage({
+      account: wallet.address as Address,
+      message,
+    });
   }
   async send(tx: EvmTransaction): Promise<Hex> {
     const wallet = await this.wallet(tx.chain);

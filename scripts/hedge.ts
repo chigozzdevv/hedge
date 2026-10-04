@@ -55,7 +55,6 @@ export function managerConfig(workspace = app) {
     HEDGE_DEPLOYMENT_ROOT: process.env["HEDGE_DEPLOYMENT_ROOT"] || root,
     HEDGE_DEPLOYMENT_FILE: "deployments/testnet.json",
     HEDGE_POLICY_FILE: process.env["HEDGE_POLICY_FILE"] || ".hedge/operator.json",
-    NEXT_PUBLIC_HEDGE_SERVER: serverUrl,
     NEXT_PUBLIC_SITE_URL: process.env["NEXT_PUBLIC_SITE_URL"] || frontendUrl,
     CORS_ORIGINS: process.env["CORS_ORIGINS"] || frontendUrl,
   };
