@@ -7,8 +7,7 @@ with an app action.
 
 **Networks:** Hedera Testnet and Base Sepolia. **Messaging:** Chainlink CCIP.
 
-**Swap demo URL:** [hedge-hedera.vercel.app/demo](https://hedge-hedera.vercel.app/demo)
-(public deployment pending).
+**Swap demo:** [hedge-hedera.vercel.app/demo](https://hedge-hedera.vercel.app/demo)
 
 ## How it works
 
@@ -92,14 +91,19 @@ HEDGE_STORAGE_TEST=1 npm exec vitest -- run server/test/database/storage-live.te
 
 </details>
 
-Public operator hosting and complete native-wallet verification remain to be completed
-before a production launch.
-
 ## Setup
 
-Requires Node 20.19+, 22.13+, or 24+, npm, Foundry, Python 3 and curl.
+Requires Node 20.19+, 22.13+, or 24+, npm, Git, Foundry, Python 3 and curl.
 
-### 1. Install and initialize wallets
+### 1. Create your app
+
+```sh
+npm create scaffold-hbar@latest -- --template chigozzdevv/hedge
+```
+
+Choose your project name and npm, then enter the generated folder.
+
+### 2. Install and initialize wallets
 
 ```sh
 npm ci
@@ -127,7 +131,7 @@ demo/.hedge/
 These are the only setup files in `.hedge`. Transaction recovery, service state and
 logs use your configured database.
 
-### 2. Configure your platform
+### 3. Configure your platform
 
 `demo/.hedge/wallets.json` contains the operator and relay keys filled by `init`:
 
@@ -234,7 +238,7 @@ MongoDB multi-record transactions require a replica set.
 
 </details>
 
-### 3. Fund wallets and deposit liquidity
+### 4. Fund wallets and deposit liquidity
 
 | Wallet          | Fund with                                                                          |
 | --------------- | ---------------------------------------------------------------------------------- |
@@ -260,7 +264,7 @@ The CLI verifies the signer/contracts, saves recovery records before broadcastin
 and confirms the deposit. Stop managed services before deposits or withdrawals.
 Retry the same command to resume an interrupted transaction.
 
-### 4. Start your platform
+### 5. Start your platform
 
 ```sh
 npm run hedge -- start
@@ -296,8 +300,8 @@ operator, loan rules and liquidity; borrowers connect their own wallets.
 | `npm run hedge -- logs demo`            | Read demo logs; use `server` for API logs                   |
 | `npm run hedge -- stop`                 | Stop managed services; retain database, wallets and capital |
 
-Liquidity records and receipts go to your configured database. `.hedge/` contains
-private wallets, local signing/deployment recovery and process state. Test reports are temporary.
+Liquidity records, transaction recovery, service state and logs use your configured database.
+`.hedge/` contains only `wallets.json`, `operator.json` and `hedge.config.json`.
 
 ## React integration
 
@@ -444,8 +448,8 @@ Browser checkpoints contain public IDs/hashes, never keys; funding is reread onc
 A quoting service supplies `POST /offers` (`{ request, base_owner }` → `{ ids }`) and
 `POST /relay` (`{ credit_id }`). It publishes capital-backed offers using the authorized
 signer; the SDK checks offers onchain. Relay only sponsors existing immutable outboxes.
-The local service implements this limited policy; public authentication/pricing/monitoring
-are pending. Public config selects an app operator; each accepted agreement fixes its own issuer.
+The supplied operator service uses the rules in `operator.json` and restricts access to
+loopback. Public config selects an app operator; each accepted agreement fixes its own issuer.
 Operators cannot withdraw other operators’ capital, withdraw their offers or authorize
 their defaults. `/operator/:address` reads a specific operator’s balance.
 
