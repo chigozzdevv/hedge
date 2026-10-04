@@ -57,6 +57,53 @@ interface Observed {
   value: bigint;
 }
 
+function matchesExecution(
+  expected: Call,
+  input: Hex,
+  caller: string,
+  signer: string,
+  depth = 0,
+): boolean {
+  if (depth > 4) return false;
+  const { args } = decodeFunctionData({ abi: redemptionAbi, data: input });
+  const [contexts, modes, calls] = args;
+  if (!contexts.length || contexts.length !== modes.length || contexts.length !== calls.length)
+    return false;
+  let matching = false;
+  for (let i = 0; i < contexts.length; i++) {
+    const context = contexts[i]!,
+      mode = modes[i]!,
+      data = calls[i]!;
+    // ERC-7579 default/revert execution only; custom modes and try/delegatecall are excluded.
+    if (!/^0x(00|01)0{62}$/i.test(mode)) return false;
+    const delegates = decodeAbiParameters(delegationParameters, context)[0];
+    const root = delegates.at(-1)?.delegator ?? caller;
+    if (!sameAddress(root, signer)) return false;
+    const inner =
+      mode.slice(2, 4) === "01"
+        ? decodeAbiParameters(executions, data)[0]
+        : data.length >= 106
+          ? [
+              {
+                target: `0x${data.slice(2, 42)}` as Address,
+                value: BigInt(`0x${data.slice(42, 106)}`),
+                callData: `0x${data.slice(106)}` as Hex,
+              },
+            ]
+          : [];
+    matching ||= inner.some(
+      (call) =>
+        (sameAddress(call.target, expected.to) &&
+          call.callData.toLowerCase() === expected.data.toLowerCase() &&
+          call.value === (expected.value ?? 0n)) ||
+        (sameAddress(call.target, delegationManager) &&
+          call.value === 0n &&
+          matchesExecution(expected, call.callData, root, signer, depth + 1)),
+    );
+  }
+  return matching;
+}
+
 /** Verify the inner intent AND its effect emitted by the configured token/vault. */
 export function matchesDelegatedCall(
   expected: Call,
@@ -69,40 +116,7 @@ export function matchesDelegatedCall(
   if (!observed.to || !sameAddress(observed.to, delegationManager) || receipt.status !== "success")
     return false;
   try {
-    const { args } = decodeFunctionData({ abi: redemptionAbi, data: observed.input });
-    const [contexts, modes, calls] = args;
-    if (!contexts.length || contexts.length !== modes.length || contexts.length !== calls.length)
-      return false;
-    let matching = false;
-    for (let i = 0; i < contexts.length; i++) {
-      const context = contexts[i]!,
-        mode = modes[i]!,
-        data = calls[i]!;
-      // ERC-7579 default/revert execution only; custom modes and try/delegatecall are excluded.
-      if (!/^0x(00|01)0{62}$/i.test(mode)) return false;
-      const delegates = decodeAbiParameters(delegationParameters, context)[0];
-      const root = delegates.at(-1)?.delegator ?? observed.from;
-      if (!sameAddress(root, signer)) return false;
-      const inner =
-        mode.slice(2, 4) === "01"
-          ? decodeAbiParameters(executions, data)[0]
-          : data.length >= 106
-            ? [
-                {
-                  target: `0x${data.slice(2, 42)}` as Address,
-                  value: BigInt(`0x${data.slice(42, 106)}`),
-                  callData: `0x${data.slice(106)}` as Hex,
-                },
-              ]
-            : [];
-      matching ||= inner.some(
-        (call) =>
-          sameAddress(call.target, expected.to) &&
-          call.callData.toLowerCase() === expected.data.toLowerCase() &&
-          call.value === (expected.value ?? 0n),
-      );
-    }
-    if (!matching) return false;
+    if (!matchesExecution(expected, observed.input, observed.from, signer)) return false;
     // The envelope alone is not evidence that a token or collateral operation succeeded.
     if (sameAddress(expected.to, collateralAsset)) {
       const call = decodeFunctionData({ abi: tokenAbi, data: expected.data });

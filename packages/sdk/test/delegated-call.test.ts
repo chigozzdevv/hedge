@@ -13,6 +13,7 @@ import {
   type TransactionReceipt,
 } from "viem";
 import { hedgeVaultAbi } from "@hedge/bindings";
+import settlement from "./fixtures/sponsored-settlement.json";
 import { tokenAbi } from "../src/evm/chain-reader";
 import {
   delegationManager,
@@ -89,6 +90,33 @@ function fixture() {
   };
 }
 describe("MetaMask delegated collateral transactions", () => {
+  it("recognizes the reported settlement through both MetaMask delegation layers", () => {
+    const tx = {
+      to: settlement.vault as Address,
+      data: encodeFunctionData({
+        abi: hedgeVaultAbi,
+        functionName: "settle",
+        args: [settlement.loan_id as Hex],
+      }),
+    };
+    const observed = {
+      ...settlement.observed,
+      to: settlement.observed.to as Address,
+      from: settlement.observed.from as Address,
+      input: settlement.observed.input as Hex,
+      value: BigInt(settlement.observed.value),
+    };
+    expect(
+      matchesDelegatedCall(
+        tx,
+        observed,
+        settlement.signer,
+        settlement.receipt as unknown as TransactionReceipt,
+        settlement.vault as Address,
+        settlement.collateral_asset as Address,
+      ),
+    ).toBe(true);
+  });
   it("recognizes the confirmed approval's relayer envelope only with the token's exact owner, spender and amount", () => {
     expect(fixture().match()).toBe(true);
   });
@@ -99,6 +127,65 @@ describe("MetaMask delegated collateral transactions", () => {
       mode: `0x01${"0".repeat(62)}`,
     }).input;
     expect(f.match()).toBe(true);
+  });
+  it("supports nested manager execution in a batch", () => {
+    const f = fixture();
+    const inner = envelope(f.tx.to, f.tx.data);
+    f.observed.input = envelope(delegationManager, inner.input, {
+      batch: true,
+      mode: `0x01${"0".repeat(62)}`,
+    }).input;
+    expect(f.match()).toBe(true);
+  });
+  it("binds nested self-execution to the verified outer wallet", () => {
+    const f = fixture();
+    const inner = encodeFunctionData({
+      abi: redemptionAbi,
+      functionName: "redeemDelegations",
+      args: [
+        [encodeAbiParameters(delegationParameters, [[]])],
+        [zeroMode],
+        [concatHex([f.tx.to, toHex(0n, { size: 32 }), f.tx.data])],
+      ],
+    });
+    f.observed.input = envelope(delegationManager, inner).input;
+    expect(f.match()).toBe(true);
+    f.observed.input = inner;
+    expect(f.match()).toBe(false);
+  });
+  it.each([
+    "outer wallet",
+    "inner wallet",
+    "target",
+    "calldata",
+    "value",
+    "mode",
+    "malformed",
+    "missing effect",
+  ])("rejects nested execution with a different %s", (field) => {
+    const f = fixture();
+    const inner = envelope(
+      field === "target" ? vault : f.tx.to,
+      field === "calldata" ? "0x1234" : f.tx.data,
+      {
+        owner: field === "inner wallet" ? relayer : owner,
+        value: field === "value" ? 1n : 0n,
+        mode: field === "mode" ? `0x0001${"0".repeat(60)}` : zeroMode,
+      },
+    );
+    f.observed.input = envelope(
+      delegationManager,
+      field === "malformed" ? "0xcef6d209" : inner.input,
+      { owner: field === "outer wallet" ? relayer : owner },
+    ).input;
+    if (field === "missing effect") f.receipt.logs = [];
+    expect(f.match()).toBe(false);
+  });
+  it("bounds nested manager decoding", () => {
+    const f = fixture();
+    for (let i = 0; i < 6; i++)
+      f.observed.input = envelope(delegationManager, f.observed.input).input;
+    expect(f.match()).toBe(false);
   });
   it.each([
     "wallet",
