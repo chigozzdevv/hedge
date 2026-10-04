@@ -1,0 +1,29 @@
+{
+  "name": "hedge",
+  "description": "Borrow USDC on Hedera against USDC collateral on Base using Chainlink CCIP.",
+  "version": "0.1.0",
+  "create-scaffold-hbar": {
+    "capabilities": {
+      "frontend": ["nextjs-app"],
+      "solidityFramework": ["foundry"],
+      "packageManager": ["npm"]
+    },
+    "defaults": {
+      "frontend": "nextjs-app",
+      "solidityFramework": "foundry",
+      "packageManager": "npm"
+    },
+    "outro": {
+      "sections": [
+        {
+          "title": "Set up Hedge",
+          "steps": [
+            {
+              "text": "Follow README setup to configure storage, initialize wallets, fund liquidity and start Hedge."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
