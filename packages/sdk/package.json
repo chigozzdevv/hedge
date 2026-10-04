@@ -1,0 +1,26 @@
+{
+  "name": "@hedge/sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hedge/bindings": "^0.1.0",
+    "@hedge/schema": "0.1.0",
+    "viem": "^2.57.2"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@hedge/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@hedge/bindings": "^0.1.0",
+    "@hedge/schema": "0.1.0",
+    "@hedge/sdk": "^0.1.0",
+    "bullmq": "6.3.4",
+    "dotenv": "17.4.2",
+    "fastify": "5.12.5",
+    "ioredis": "6.0.0",
+    "mongoose": "9.10.0",
+    "pg": "8.23.1",
+    "viem": "^2.57.2",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

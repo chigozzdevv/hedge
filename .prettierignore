@@ -1,0 +1,14 @@
+node_modules/
+dist/
+out/
+cache/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+coverage/
+.hedge/
+package-lock.json
+*.sol
+*.toml
+
+packages/bindings/artifacts/

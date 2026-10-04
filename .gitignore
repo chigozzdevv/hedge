@@ -1,0 +1,16 @@
+node_modules/
+dist/
+out/
+cache/
+coverage/
+.next/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+**/.hedge/wallets.json
+**/.hedge/keys/
+**/.hedge/manager.lock/
+*.log
+.DS_Store
+__pycache__/

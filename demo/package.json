@@ -1,0 +1,32 @@
+{
+  "name": "@hedge/demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3002",
+    "build": "next build --webpack",
+    "start": "next start --hostname 127.0.0.1 --port 3002",
+    "typecheck": "tsc --noEmit",
+    "hedge": "tsx ../scripts/hedge.ts"
+  },
+  "dependencies": {
+    "@hedge/frontend": "0.1.0",
+    "@hedge/sdk": "0.1.0",
+    "@hedge/schema": "0.1.0",
+    "@hedge/bindings": "0.1.0",
+    "viem": "^2.57.2",
+    "@fontsource-variable/dm-sans": "^5.3.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "lucide-react": "^1.51.0",
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "shiki": "^4.5.0",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
+  }
+}

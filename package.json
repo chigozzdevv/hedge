@@ -1,0 +1,49 @@
+{
+  "name": "hedge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.9.0",
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24"
+  },
+  "workspaces": [
+    "packages/*",
+    "server",
+    "demo"
+  ],
+  "scripts": {
+    "build": "npm run build:packages && npm run build --workspace @hedge/server && npm run build --workspace @hedge/demo && npm run build:contracts",
+    "build:contracts": "forge build --root contracts",
+    "build:packages": "npm run build --workspace @hedge/schema && npm run build --workspace @hedge/bindings && npm run build --workspace @hedge/sdk && npm run build --workspace @hedge/frontend",
+    "lint": "eslint . --max-warnings=0",
+    "format:check": "prettier --check . && forge fmt --root contracts --check",
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p scripts/tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:contracts": "forge test --root contracts",
+    "codegen": "npm run codegen --workspace @hedge/bindings",
+    "codegen:check": "npm run codegen:check --workspace @hedge/bindings",
+    "check": "npm run lint && npm run format:check && npm run build && npm run typecheck && npm test && npm run test:contracts && npm run codegen:check",
+    "dev:server": "npm run dev --workspace @hedge/server",
+    "start:server": "npm run start --workspace @hedge/server",
+    "dev:demo": "npm run dev --workspace @hedge/demo",
+    "start:demo": "npm run start --workspace @hedge/demo",
+    "hedge": "tsx scripts/hedge.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.19.0",
+    "eslint": "10.11.0",
+    "prettier": "3.6.2",
+    "tsup": "8.5.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.0",
+    "vitest": "4.1.11"
+  },
+  "overrides": {
+    "tsup": {
+      "esbuild": "0.28.1"
+    }
+  }
+}
