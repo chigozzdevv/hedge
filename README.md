@@ -288,8 +288,8 @@ npm run hedge -- stop
 
 The swap example is at `http://127.0.0.1:3002/demo` with the setup ports above:
 
-**Connect Hedera → enter USDC amount → review swap → Use Hedge for a shortfall →
-connect Base → review/sign → Continue to swap → Confirm swap.**
+**Enter USDC amount → Use Hedge → connect wallets → review/sign the loan →
+receive USDC → Continue to swap → Confirm swap.**
 Use **Manage loan** in the same modal to repay. The demo uses the configured
 operator, loan rules and liquidity; borrowers connect their own wallets.
 
@@ -317,7 +317,7 @@ import { HedgeProvider, UseHedge } from "@hedge/frontend";
 <HedgeProvider wallet={appWallet}>
   <YourSwapForm />
   <UseHedge
-    amount={shortfall}
+    amount={formValid ? calculateShortfall : undefined}
     continueLabel="Continue to swap"
     onContinue={refreshBalanceAndQuote}
   />
@@ -326,7 +326,10 @@ import { HedgeProvider, UseHedge } from "@hedge/frontend";
 
 `appWallet` implements [EvmWallet](packages/sdk/src/evm/evm-adapter.ts): connect/read
 wallet identity on each chain and request transaction approval. Hedera identities
-include the account ID. `shortfall` is a decimal USDC string, e.g. `"0.1"`.
+include the account ID. `amount` accepts a decimal string or a calculation function
+that receives the connected Hedera wallet. Your app reads the balance and returns
+the shortfall, e.g. `"0.1"`. `undefined` disables new borrowing; `"0"` means no loan
+is needed. Existing loans remain manageable with an empty form.
 The provider loads public config, verifies contracts and includes one modal and its styles.
 `onContinue` receives confirmed funding; your app implements its next action.
 Authenticated backends can supply the provider’s `request` transport.

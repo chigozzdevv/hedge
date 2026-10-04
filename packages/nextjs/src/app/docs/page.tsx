@@ -205,11 +205,14 @@ curl -fsS http://127.0.0.1:3002/hedge.config.json \\
             />
             <p>
               <code>appWallet</code> supplies Base and Hedera wallet connections and asks users to
-              sign transactions. <code>shortfall</code> is the amount needed, as a decimal string
-              computed from the real balance, such as <code>"0.1"</code>. Hedera wallet identities
-              include the account ID. <code>resumeAppAction</code> runs after confirmed funding when
-              the user chooses to continue. Your app chooses the action and button label; swapping
-              is the reference example. Further transactions need wallet approval.
+              sign transactions. <code>amount</code> accepts a decimal string or a function that
+              receives the connected Hedera wallet. Your app reads its balance and returns the
+              shortfall, such as <code>"0.1"</code>. Pass <code>undefined</code> while the form is
+              invalid; <code>"0"</code> means no loan is needed. Existing loans remain manageable
+              with an empty form. Hedera wallet identities include the account ID.{" "}
+              <code>resumeAppAction</code> runs after confirmed funding when the user chooses to
+              continue. Your app chooses the action and button label; swapping is the reference
+              example. Further transactions need wallet approval.
             </p>
             <p>
               The provider loads public config, verifies contracts and mounts one modal. It includes

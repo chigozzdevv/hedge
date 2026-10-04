@@ -55,7 +55,7 @@ export const integrationCode = `import { HedgeProvider, UseHedge } from "@hedge/
 
 <HedgeProvider wallet={appWallet}>
   <UseHedge
-    amount={shortfall}
+    amount={formValid ? calculateShortfall : undefined}
     continueLabel="Continue"
     onContinue={resumeAppAction}
   />
