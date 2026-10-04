@@ -1,7 +1,16 @@
 import js from "@eslint/js";
 import ts from "typescript-eslint";
 export default ts.config(
-  { ignores: ["**/dist/**", "**/out/**", "**/cache/**", "**/.next/**", "**/next-env.d.ts"] },
+  {
+    ignores: [
+      "**/dist/**",
+      "**/out/**",
+      "**/cache/**",
+      "**/.next/**",
+      "**/next-env.d.ts",
+      "packages/foundry/lib/**",
+    ],
+  },
   js.configs.recommended,
   ...ts.configs.recommended,
   {

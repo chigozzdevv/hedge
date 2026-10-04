@@ -12,3 +12,4 @@ package-lock.json
 *.toml
 
 packages/bindings/artifacts/
+packages/foundry/lib/
