@@ -1,0 +1,20 @@
+[
+  {
+    "name": "hedge-lending",
+    "artifact": "hedge-lending.sol/HedgeLending.json"
+  },
+  {
+    "name": "hedge-vault",
+    "artifact": "hedge-vault.sol/HedgeVault.json"
+  },
+  {
+    "name": "hedge-lending-v2",
+    "artifact": "hedge-lending.sol/HedgeLending.json",
+    "source": "v2"
+  },
+  {
+    "name": "hedge-vault-v2",
+    "artifact": "hedge-vault.sol/HedgeVault.json",
+    "source": "v2"
+  }
+]
