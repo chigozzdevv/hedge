@@ -67,7 +67,7 @@ export function publishConfig(value: unknown, path: string): void {
 export function deploymentKey(root: string): string {
   const creation = ["hedge-lending.sol/HedgeLending.json", "hedge-vault.sol/HedgeVault.json"].map(
     (path) => {
-      const artifact = JSON.parse(readFileSync(join(root, "contracts/out", path), "utf8"));
+      const artifact = JSON.parse(readFileSync(join(root, "packages/foundry/out", path), "utf8"));
       if (
         typeof artifact.bytecode?.object !== "string" ||
         !/^0x[0-9a-fA-F]+$/.test(artifact.bytecode.object)

@@ -1,4 +1,4 @@
-import { testConfig, testRecord } from "../../packages/schema/test/config-fixture";
+import { testConfig, testRecord } from "../../schema/test/config-fixture";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET } from "../src/app/hedge.config.json/route";
 
@@ -12,9 +12,25 @@ const settings = {
   rpc: config.rpc,
   mirror_url: config.mirror_url,
 };
-afterEach(() => vi.resetAllMocks());
+afterEach(() => {
+  vi.resetAllMocks();
+  vi.unstubAllEnvs();
+});
 
 describe("root public config endpoint", () => {
+  it("loads app settings and the repository deployment from the Next.js workspace", async () => {
+    vi.stubEnv("HEDGE_APP_DIR", "/projects/hedge/packages/nextjs");
+    vi.stubEnv("HEDGE_DEPLOYMENT_ROOT", undefined);
+    mocks.read.mockImplementation(async (path: string) =>
+      JSON.stringify(path.endsWith("hedge.config.json") ? settings : testRecord),
+    );
+    expect((await GET()).status).toBe(200);
+    expect(mocks.read).toHaveBeenCalledWith(
+      "/projects/hedge/packages/nextjs/.hedge/hedge.config.json",
+      "utf8",
+    );
+    expect(mocks.read).toHaveBeenCalledWith("/projects/hedge/deployments/testnet.json", "utf8");
+  });
   it("serves validated connection details without caching a stale config", async () => {
     mocks.read.mockImplementation(async (path: string) =>
       JSON.stringify(path.endsWith("hedge.config.json") ? settings : testRecord),

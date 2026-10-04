@@ -9,7 +9,7 @@ const registry: unknown = JSON.parse(
 const files = await generateBindings(registry, async (path, source) => {
   const artifactRoot = resolve(
     root,
-    source === "v2" ? "packages/bindings/artifacts/v2" : "contracts/out",
+    source === "v2" ? "packages/bindings/artifacts/v2" : "packages/foundry/out",
   );
   const target = resolve(artifactRoot, path),
     rel = relative(artifactRoot, target);

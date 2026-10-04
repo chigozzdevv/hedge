@@ -7,11 +7,11 @@ documentation, examples and generated output.
 
 ## Ownership and layout
 
-- `contracts`: Foundry Solidity, Hedera lending and Base custody. All contracts use EVM; no additional runtime folder is needed.
+- `packages/foundry`: Foundry Solidity, Hedera lending and Base custody. All contracts use EVM; no additional runtime folder is needed.
 - `packages/schema`: shared runtime validation and inferred boundary types.
 - `packages/bindings`: explicit contract registry and generated ABIs; codegen stays here.
 - `packages/sdk`: public factory, resource handles, progress/errors and adapter boundary.
-- `demo` owns the Next.js website and working swap reference at `/demo`, including
+- `packages/nextjs` owns the Next.js website and working swap reference at `/demo`, including
   host wallet/DEX services and swap recovery. It consumes the public frontend package.
 - `packages/frontend` owns the reusable Hedge provider and Use Hedge modal.
   React apps use `HedgeProvider`/`UseHedge`; on first use the provider loads supplied public config,
@@ -30,7 +30,7 @@ documentation, examples and generated output.
   The demo injects real services in explicit loopback testnet mode; reusable
   components still require real wallet/chain services. Browser extension/native wallet
   integrations and production services are not live-verified.
-  `.hedge` belongs to the host app (`demo/.hedge` here), never the repository root.
+  `.hedge` belongs to the host app (`packages/nextjs/.hedge` here), never the repository root.
   It contains only wallets.json, operator.json and hedge.config.json. `init` creates/reuses
   wallets and binds the supplied public settings to their operator on first initialization.
   Signing recovery, confirmed liquidity receipts, process state and logs persist in configured
@@ -67,7 +67,7 @@ local testnet browser happy path are implemented. Broader live recovery and
 production wallet/operator integrations remain pending. Contract tests must cover the full lifecycle,
 message/token failure recovery and adversarial operation sequences. Keep vendored
 consumer interfaces unchanged and preserve their provenance/checksums.
-Do not edit the original Termbook checkout. This copy intentionally has no Git history.
+Do not edit the original Termbook checkout.
 
 ## Commands
 

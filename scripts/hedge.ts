@@ -11,11 +11,12 @@ import { setTimeout as delay } from "node:timers/promises";
 const entry = fileURLToPath(import.meta.url);
 const root = resolve(dirname(entry), "..");
 const app = resolve(
-  process.env["HEDGE_APP_DIR"] || (process.cwd() === root ? join(root, "demo") : process.cwd()),
+  process.env["HEDGE_APP_DIR"] ||
+    (process.cwd() === root ? join(root, "packages/nextjs") : process.cwd()),
 );
 const stateDir = join(app, ".hedge");
 const managementScope = `manager:${hostname()}:${createHash("sha256").update(app).digest("hex")}`;
-const names = ["server", "demo"] as const;
+const names = ["server", "nextjs"] as const;
 type ServiceName = (typeof names)[number];
 type Service = { pid: number; runId: string; configHash: string; port: number; url: string };
 type State = Partial<Record<ServiceName, Service>>;
@@ -73,7 +74,7 @@ export function managerConfig(workspace = app) {
         database: environment["DATABASE_URL"],
         redis: environment["REDIS_URL"],
         localTest,
-        app: "demo",
+        app: "nextjs",
         origins: environment.CORS_ORIGINS,
         prefix: environment["REDIS_PREFIX"],
         config: environment["HEDGE_DEPLOYMENT_FILE"],
@@ -352,7 +353,7 @@ async function start(): Promise<void> {
     }
   }
   if (!Object.keys(state).length) {
-    console.log("Building packages, server and demo…");
+    console.log("Building packages, server and Next.js…");
     await run("npm", ["run", "build:packages"], config.environment);
   }
   const { loadOperatorPolicy } = await import("../server/src/features/operator/quote-policy.js");
@@ -363,7 +364,7 @@ async function start(): Promise<void> {
   checkInterrupted();
   if (!Object.keys(state).length) {
     await run("npm", ["run", "build", "--workspace", "@hedge/server"], config.environment);
-    await run("npm", ["run", "build", "--workspace", "@hedge/demo"], config.environment);
+    await run("npm", ["run", "build", "--workspace", "@hedge/nextjs"], config.environment);
   }
   const started: ServiceName[] = [];
   try {
@@ -513,7 +514,7 @@ async function liquidity(args: string[]): Promise<void> {
   await runLiquidity(app, reader, config.operator, request, checkInterrupted);
 }
 async function logs(name?: string): Promise<void> {
-  if (name && !names.includes(name as ServiceName)) throw new Error("Choose server or demo logs");
+  if (name && !names.includes(name as ServiceName)) throw new Error("Choose server or nextjs logs");
   const { readRecord } = await import("../server/src/shared/database/records.js");
   for (const service of name ? [name] : names) {
     const log = await readRecord<string>(managementScope, `logs:${service}`);
@@ -583,7 +584,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   const [command = "start", ...rest] = args;
   if (command === "help" || command === "--help") {
     console.log(
-      "npm run hedge -- init\nnpm run hedge -- liquidity [status|deposit AMOUNT|withdraw AMOUNT]\nnpm run hedge -- start|stop|restart|deploy|logs [server|demo]\nConfiguration: app/.hedge/{wallets,operator,hedge.config}.json and server/.env",
+      "npm run hedge -- init\nnpm run hedge -- liquidity [status|deposit AMOUNT|withdraw AMOUNT]\nnpm run hedge -- start|stop|restart|deploy|logs [server|nextjs]\nConfiguration: app/.hedge/{wallets,operator,hedge.config}.json and server/.env",
     );
     return;
   }
@@ -604,7 +605,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     liquidityRequest(rest);
   } else if (command === "logs") {
     if (rest.length > 1 || (rest[0] && !names.includes(rest[0] as ServiceName)))
-      throw new Error("Choose server or demo logs");
+      throw new Error("Choose server or nextjs logs");
   } else {
     if (rest.length) throw new Error("Configure deployment and services through server/.env");
     if (!["start", "deploy", "stop", "restart"].includes(command))

@@ -9,7 +9,7 @@ export async function GET() {
   const headers = { "Cache-Control": "no-store" };
   try {
     const root = resolve(process.env["HEDGE_APP_DIR"] || process.cwd());
-    const deploymentRoot = resolve(process.env["HEDGE_DEPLOYMENT_ROOT"] || resolve(root, ".."));
+    const deploymentRoot = resolve(process.env["HEDGE_DEPLOYMENT_ROOT"] || resolve(root, "../.."));
     const settings = connectionConfigSchema.parse(
       JSON.parse(await readFile(resolve(root, ".hedge/hedge.config.json"), "utf8")),
     );

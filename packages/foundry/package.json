@@ -1,0 +1,11 @@
+{
+  "name": "@hedge/foundry",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "format": "forge fmt",
+    "format:check": "forge fmt --check"
+  }
+}

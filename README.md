@@ -22,7 +22,7 @@ with an app action.
 
 ### Loan terms
 
-The supplied `demo/.hedge/operator.json` sets:
+The supplied `packages/nextjs/.hedge/operator.json` sets:
 
 | Setting             | Value                |
 | ------------------- | -------------------- |
@@ -74,7 +74,7 @@ Recorded timing: **165s acceptance → payout**, **42s lock → payout**, **691s
 lifecycle**, including user actions. The tests used separate gas/repayment buffers.
 Receipt links identify the contracts used in each run. These are testnet results.
 
-Run `npm run check` for local validation. Last verified coverage: **318 TypeScript /
+Run `npm run check` for local validation. Last verified coverage: **319 TypeScript /
 150 Solidity tests**, covering lifecycle, HTS/CCIP failures, collateral settlement, cancellation races,
 replay/order attacks and fuzzing. Real database checks passed separately: **11 PostgreSQL /
 10 MongoDB**, including liquidity recovery, command ownership and expired signer leases.
@@ -111,18 +111,18 @@ npm run build:contracts
 npm run codegen
 npm run build:packages
 cp server/.env.example server/.env
-cd demo
+cd packages/nextjs
 npm run hedge -- init
 ```
 
-Run Hedge commands from your app folder (`demo/` here). The repository command also
-uses `demo/` by default. Keep an existing `server/.env` when upgrading.
+Run Hedge commands from your app folder (`packages/nextjs/` here). The repository command also
+uses `packages/nextjs/` by default. Keep an existing `server/.env` when upgrading.
 `init` creates or reuses the operator/relay wallets and prints their addresses.
 On the first initialization it fills the operator address in the supplied settings.
 Borrowers connect their own wallets.
 
 ```text
-demo/.hedge/
+packages/nextjs/.hedge/
   wallets.json
   operator.json
   hedge.config.json
@@ -133,7 +133,7 @@ logs use your configured database.
 
 ### 3. Configure your platform
 
-`demo/.hedge/wallets.json` contains the operator and relay keys filled by `init`:
+`packages/nextjs/.hedge/wallets.json` contains the operator and relay keys filled by `init`:
 
 ```json
 {
@@ -151,7 +151,7 @@ logs use your configured database.
 This file contains unencrypted private keys. Keep it private (`0600`); it is ignored by
 Git and never served to the browser.
 
-`demo/.hedge/operator.json` sets the lending rules:
+`packages/nextjs/.hedge/operator.json` sets the lending rules:
 
 ```json
 {
@@ -178,7 +178,7 @@ An empty `eligible_borrowers` list allows everyone who meets the terms. Asset ad
 must match the selected contracts; startup checks them. Restart after editing rules;
 accepted loans retain their agreed terms.
 
-`demo/.hedge/hedge.config.json` selects your operator and public connection details:
+`packages/nextjs/.hedge/hedge.config.json` selects your operator and public connection details:
 
 ```json
 {
@@ -220,7 +220,7 @@ DATABASE_URL=mongodb://127.0.0.1:27017/hedge
 
 Startup applies migrations/indexes. Transactions, receipts, process state and logs
 go to your configured database. Redis is optional. Wallet keys stay in
-`demo/.hedge/wallets.json`.
+`packages/nextjs/.hedge/wallets.json`.
 
 <details>
 <summary>Start PostgreSQL locally</summary>
@@ -273,7 +273,7 @@ npm run hedge -- start
 This starts your backend with your configured operator, rules and liquidity,
 plus the bundled website. Startup prints both URLs. Integrate Use Hedge in your
 own app using the React setup below; `/demo` is the included swap example.
-The website serves the public settings from `demo/.hedge/hedge.config.json` at
+The website serves the public settings from `packages/nextjs/.hedge/hedge.config.json` at
 `/hedge.config.json`; it never serves the wallets file.
 
 To stop your services:
@@ -297,7 +297,7 @@ operator, loan rules and liquidity; borrowers connect their own wallets.
 | `npm run hedge -- liquidity withdraw 1` | Withdraw 1 USDC of free capital                             |
 | `npm run hedge -- start`                | Verify and start services; also the default `npm run hedge` |
 | `npm run hedge -- restart`              | Rebuild/restart after configuration or code edits           |
-| `npm run hedge -- logs demo`            | Read demo logs; use `server` for API logs                   |
+| `npm run hedge -- logs nextjs`          | Read website logs; use `server` for API logs                |
 | `npm run hedge -- stop`                 | Stop managed services; retain database, wallets and capital |
 
 Liquidity records, transaction recovery, service state and logs use your configured database.
@@ -353,9 +353,9 @@ Use a client component in Next.js. The loopback test service cannot serve remote
 
 </details>
 
-`demo` owns the Next.js website, `/docs`, and `/demo` swap/runtime code.
+`packages/nextjs` owns the Next.js website, `/docs`, and `/demo` swap/runtime code.
 `packages/frontend` contains only reusable Hedge integration. For website-only development,
-run `npm run dev:demo`; the working swap needs the backend started above.
+run `npm run dev:nextjs`; the working swap needs the backend started above.
 
 ## Deployment
 
@@ -428,12 +428,12 @@ An outage can delay progress without allowing an agreement override.
 
 | Path                                       | Responsibility                                   |
 | ------------------------------------------ | ------------------------------------------------ |
-| `contracts`                                | EVM lending/custody, codecs and CCIP             |
+| `packages/foundry`                         | EVM lending/custody, codecs and CCIP             |
 | `packages/schema`, `packages/bindings`     | Validation, compiler-derived registry/ABIs       |
 | `packages/sdk`                             | `create_hedge`, resource handles and EVM adapter |
 | `packages/frontend`                        | Reusable provider and Use Hedge modal            |
 | `server/src/features`, `server/src/shared` | Feature services and shared infrastructure       |
-| `demo`                                     | Next.js website and real swap at `/demo`         |
+| `packages/nextjs`                          | Next.js website and real swap at `/demo`         |
 | `scripts/hedge.ts`                         | Process/deployment management                    |
 
 `app.ts` wires features; shared code does not import them. Packages do not depend on
@@ -463,7 +463,7 @@ units, leases and deduplication preserve precision/retry ownership.
 <details>
 <summary>CCIP provenance and checksums</summary>
 
-The six files under `contracts/vendor/ccip-2.0.0/` are unmodified MIT-licensed
+The six files under `packages/foundry/vendor/ccip-2.0.0/` are unmodified MIT-licensed
 consumer files from the official `@chainlink/contracts-ccip@2.0.0` npm tarball.
 Router/token-pool runtime contracts are not vendored or deployed by Hedge.
 

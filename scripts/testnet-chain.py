@@ -10,7 +10,7 @@ from journal import JournalDirectory
 ROOT = Path(__file__).resolve().parent.parent
 RUN_NAME = os.environ.get('HEDGE_TESTNET_RUN', 'fast')
 assert RUN_NAME in ['', 'fast'], 'Unknown testnet run'
-BUILD_KEY = hashlib.sha256(('hedge-v3:'+':'.join(json.loads((ROOT/path).read_text())['bytecode']['object'] for path in ['contracts/out/hedge-lending.sol/HedgeLending.json','contracts/out/hedge-vault.sol/HedgeVault.json'])).encode()).hexdigest()[:16]
+BUILD_KEY = hashlib.sha256(('hedge-v3:'+':'.join(json.loads((ROOT/path).read_text())['bytecode']['object'] for path in ['packages/foundry/out/hedge-lending.sol/HedgeLending.json','packages/foundry/out/hedge-vault.sol/HedgeVault.json'])).encode()).hexdigest()[:16]
 RUN_DIR = JournalDirectory()
 BASE_CONFIRMATIONS = 5 if RUN_NAME == 'fast' else 0
 CAPITAL_AMOUNT = 5*10**6 if RUN_NAME == 'fast' else 50*10**6
@@ -20,14 +20,14 @@ NETWORKS = {
     'hedera-testnet': {'rpc': 'https://testnet.hashio.io/api', 'chainId':296,
         'router':'0x802C5F84eAD128Ff36fD6a3f8a418e339f467Ce4',
         'selector':222782988166878823, 'remoteSelector':10344971235874465080,
-        'remoteChainId':84532, 'artifact':'contracts/out/hedge-lending.sol/HedgeLending.json'},
+        'remoteChainId':84532, 'artifact':'packages/foundry/out/hedge-lending.sol/HedgeLending.json'},
     'base-sepolia': {'rpc':'https://sepolia.base.org','chainId':84532,
         'router':'0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93',
         'selector':10344971235874465080, 'remoteSelector':222782988166878823,
-        'remoteChainId':296,'artifact':'contracts/out/hedge-vault.sol/HedgeVault.json'}
+        'remoteChainId':296,'artifact':'packages/foundry/out/hedge-vault.sol/HedgeVault.json'}
 }
 
-app = Path(os.environ.get('HEDGE_APP_DIR', str(ROOT/'demo')))
+app = Path(os.environ.get('HEDGE_APP_DIR', str(ROOT/'packages'/'nextjs')))
 wallets=json.loads((app/'.hedge/wallets.json').read_text())
 os.environ.setdefault('HEDGE_JOURNAL_SCOPE', 'deployment:'+str(app)+':'+wallets['hedera']['address'].lower()+':'+BUILD_KEY)
 for network,config in NETWORKS.items():

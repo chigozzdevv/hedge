@@ -65,18 +65,18 @@ export default function DocsPage() {
               receipts go to your database.
             </p>
             <p>
-              Configure loan rules in <code>demo/.hedge/operator.json</code>. Leave{" "}
+              Configure loan rules in <code>packages/nextjs/.hedge/operator.json</code>. Leave{" "}
               <code>eligible_borrowers</code> empty to allow everyone, or add addresses to restrict
               eligibility. The supplied terms allow up to 1 USDC, require 2× Base USDC collateral,
               charge 2% and set a 30-day term. Borrowers connect and sign with their own wallets.
             </p>
             <h3>Prepare your operator</h3>
-            <CodeBlock code={`cd demo\nnpm run hedge -- init`} />
+            <CodeBlock code={`cd packages/nextjs\nnpm run hedge -- init`} />
             <p>
               Init generates or reuses operator/relay wallets and prints their addresses. Setup
-              files stay in <code>demo/.hedge</code>. Fund the operator on Hedera Testnet with HBAR
-              and the configured USDC token <code>0.0.5449</code>; fund the Base Sepolia wallet with
-              ETH. The borrower also needs Hedera HBAR and the full repayment amount.
+              files stay in <code>packages/nextjs/.hedge</code>. Fund the operator on Hedera Testnet
+              with HBAR and the configured USDC token <code>0.0.5449</code>; fund the Base Sepolia
+              wallet with ETH. The borrower also needs Hedera HBAR and the full repayment amount.
             </p>
             <p>
               The configured Hedera token differs from Circle’s Hedera test token. Follow the root
@@ -86,8 +86,8 @@ export default function DocsPage() {
             <CodeBlock code={`npm run hedge -- liquidity deposit 5\nnpm run hedge -- start`} />
             <div className="guide-note">
               <p>
-                The supplied <code>demo/.hedge/hedge.config.json</code> selects the shared
-                contracts. Set its <code>operator</code> to your wallet and{" "}
+                The supplied <code>packages/nextjs/.hedge/hedge.config.json</code> selects the
+                shared contracts. Set its <code>operator</code> to your wallet and{" "}
                 <code>operator_url</code> to your backend endpoint. Liquidity commands store
                 recovery records and receipts in your configured database. Each operator owns its
                 balance, offers and loan rules on the shared contracts.

@@ -128,14 +128,14 @@ it("uses fresh deployment journals when custom contract bytecode changes", () =>
     ["hedge-lending.sol/HedgeLending.json", "0x6000"],
     ["hedge-vault.sol/HedgeVault.json", "0x6001"],
   ]) {
-    const path = join(root, "contracts/out", name);
+    const path = join(root, "packages/foundry/out", name);
     mkdirSync(join(path, ".."), { recursive: true });
     writeFileSync(path, JSON.stringify({ bytecode: { object: code } }));
   }
   const first = deploymentKey(root);
   expect(deploymentKey(root)).toBe(first);
   writeFileSync(
-    join(root, "contracts/out/hedge-lending.sol/HedgeLending.json"),
+    join(root, "packages/foundry/out/hedge-lending.sol/HedgeLending.json"),
     JSON.stringify({ bytecode: { object: "0x6002" } }),
   );
   expect(deploymentKey(root)).not.toBe(first);

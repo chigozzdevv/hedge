@@ -1,5 +1,5 @@
 {
-  "name": "@hedge/demo",
+  "name": "@hedge/nextjs",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1 --port 3002",
     "typecheck": "tsc --noEmit",
-    "hedge": "tsx ../scripts/hedge.ts"
+    "hedge": "tsx ../../scripts/hedge.ts"
   },
   "dependencies": {
     "@hedge/frontend": "0.1.0",

@@ -12,7 +12,7 @@ import termios
 import time
 
 ROOT = Path(__file__).resolve().parent.parent
-WALLETS = Path(os.environ.get('HEDGE_APP_DIR', str(ROOT/'demo'))) / '.hedge' / 'wallets.json'
+WALLETS = Path(os.environ.get('HEDGE_APP_DIR', str(ROOT/'packages'/'nextjs'))) / '.hedge' / 'wallets.json'
 CAST = shutil.which('cast')
 
 
