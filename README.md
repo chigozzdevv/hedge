@@ -8,6 +8,8 @@ with an app action.
 **Networks:** Hedera Testnet and Base Sepolia. **Messaging:** Chainlink CCIP.
 
 **Swap demo:** [hedge-hedera.vercel.app/demo](https://hedge-hedera.vercel.app/demo)
+uses [SaucerSwap](https://docs.saucerswap.finance/developers/v1/swap/swap-tokens-for-hbar)
+to quote and swap USDC → HBAR on Hedera Testnet.
 
 ## How it works
 
@@ -74,7 +76,7 @@ Recorded timing: **165s acceptance → payout**, **42s lock → payout**, **691s
 lifecycle**, including user actions. The tests used separate gas/repayment buffers.
 Receipt links identify the contracts used in each run. These are testnet results.
 
-Run `npm run check` for local validation. Last verified coverage: **319 TypeScript /
+Run `npm run check` for local validation. Last verified coverage: **327 TypeScript /
 150 Solidity tests**, covering lifecycle, HTS/CCIP failures, collateral settlement, cancellation races,
 replay/order attacks and fuzzing. Real database checks passed separately: **11 PostgreSQL /
 10 MongoDB**, including liquidity recovery, command ownership and expired signer leases.
