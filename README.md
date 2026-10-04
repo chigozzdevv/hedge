@@ -39,59 +39,21 @@ Repayment is one full payment; early repayment keeps the agreed charge. Network
 fees are separate. Collateral repayment accepts Base USDC at the agreed 1:1 rate.
 After the repayment deadline, the operator can claim the agreed collateral on default.
 
-## End-to-end test evidence
+## End-to-end transactions
 
-**Borrow and repay with collateral · 2026-10-04 · SDK execution.**
-Borrowed **0.1 Hedera USDC**
-against **0.2 Base USDC**. Collateral repayment paid the operator **0.102 Base USDC**
-and returned **0.098 Base USDC** to the borrower. Confirmed balances and Hedera state:
-`Repaid`, collateral `settled`, **0 due**. Hedera lending capital stayed at **4.9 USDC**;
-the Base payment was not credited as Hedera liquidity.
+Our demo integration in `packages/nextjs` completed the full cycle using the public integration path on Hedera Testnet and Base Sepolia.
 
-| Step                           | Receipt                                                                                                                            |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Accept loan                    | [0xec81f3df…ef88af ↗](https://hashscan.io/testnet/transaction/0xec81f3df9694a61f8fb36e59e71cd7f993eca141322cba063b2aa29a5fef88af) |
-| Lock collateral                | [0x40e45a1c…a6f017 ↗](https://sepolia.basescan.org/tx/0x40e45a1c8ad325507d60ee68ef115d53f6fd9439bfe2e38862f63b7acaa6f017)         |
-| Receive funds                  | [0xe85ff5dd…45d292 ↗](https://hashscan.io/testnet/transaction/0xe85ff5ddd2e92b6d81a0c838ab04aaf7be1fba86a4caafa179c12ae5a145d292) |
-| Authorize collateral payment   | [0x6ea76192…e0b89a ↗](https://hashscan.io/testnet/transaction/0x6ea76192ca5d2f18a3202428c1caf97062becfde6fcfa8fae71c7d7f68e0b89a) |
-| Pay operator; return remainder | [0x431b26c7…2671ed ↗](https://sepolia.basescan.org/tx/0x431b26c7724f18ab5a19fe058806d5291a4761ce34427d6f943cd325262671ed)         |
-| Confirm repayment              | [0xc5de9e8e…bc8501 ↗](https://hashscan.io/testnet/transaction/0xc5de9e8e4c4a36fc079fbd554bfa11bec2b75ab58a053951948339af73bc8501) |
+**Borrow, swap, repay and collateral return transaction hashes**
 
-**Borrow, swap, repay and claim · 2026-10-02 · browser execution.**
-The confirmed 0.1 USDC loan flow:
-
-| Step                              | Receipt                                                                                                                            |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Accept loan                       | [0x56d5e827…083175 ↗](https://hashscan.io/testnet/transaction/0x56d5e827cb0d1f14b120067fb89656708872431fec564ea2775c6aeadc083175) |
-| Deliver agreement to Base         | [0x32680aa0…cf3ab7 ↗](https://ccip.chain.link/msg/0x32680aa0b2f32790478106f166cc713c9b24757200d3cc4a1635fa5374cf3ab7)             |
-| Lock collateral                   | [0xcee36861…b4c261 ↗](https://sepolia.basescan.org/tx/0xcee36861b57da105aeeb7b3ac01d26836eeab5c8cf1ef5f423c819ba57b4c261)         |
-| Confirm custody on Hedera         | [0xc5024369…955b08 ↗](https://ccip.chain.link/msg/0xc502436907b7de3053ce9f13956d83f2d2630fd12f2243441606fa7a12955b08)             |
-| Receive 0.1 USDC                  | [0xddc63e29…43379a ↗](https://hashscan.io/testnet/transaction/0xddc63e291c37104f573a883e88172370313106e461bef7059bc9b4910d43379a) |
-| Swap 0.01 USDC → 0.00441962 HBAR  | [0x6c71a2db…ddd3d6 ↗](https://hashscan.io/testnet/transaction/0x6c71a2db50cbf64cce4d9b9d872c919eabb16a364ca9beca41c9931ae5ddd3d6) |
-| Repay loan                        | [0x59e126ae…a73eb8 ↗](https://hashscan.io/testnet/transaction/0x59e126aef78c9157b58a5b0fc8afe4d2fb722c9261811b9187586bdd24a73eb8) |
-| Deliver repayment outcome to Base | [0x7b20ae07…994eeb ↗](https://ccip.chain.link/msg/0x7b20ae074fd40e386dd1752d80d85a1a43ece29e897dbaa067c43fca97994eeb)             |
-| Claim collateral                  | [0xa7a92d20…c2e984 ↗](https://sepolia.basescan.org/tx/0xa7a92d20fbaf7db85fa4568307a54eae31aecbe1d80d0dbc112bd95360c2e984)         |
-
-Recorded timing: **165s acceptance → payout**, **42s lock → payout**, **691s full
-lifecycle**, including user actions. The tests used separate gas/repayment buffers.
-Receipt links identify the contracts used in each run. These are testnet results.
-
-Run `npm run check` for local validation. Last verified coverage: **333 TypeScript /
-150 Solidity tests**, covering lifecycle, HTS/CCIP failures, collateral settlement, cancellation races,
-replay/order attacks and fuzzing. Real database checks passed separately: **11 PostgreSQL /
-10 MongoDB**, including liquidity recovery, command ownership and expired signer leases.
-
-<details>
-<summary>Run the database integration tests</summary>
-
-Use isolated loopback `hedge_test` databases: PostgreSQL on `15432` or MongoDB on
-`27027`. Set matching `DATABASE_DRIVER`/`DATABASE_URL`, disable Redis, then run:
-
-```sh
-HEDGE_STORAGE_TEST=1 npm exec vitest -- run server/test/database/storage-live.test.ts
-```
-
-</details>
+| Step                                       | Transaction                                                                                                                        |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Accept loan                                | [0x93dd275d…7cca58 ↗](https://hashscan.io/testnet/transaction/0x93dd275d8f77db3880db265109267f6990e20404622bd128f85d2f377e7cca58) |
+| Lock collateral                            | [0xac63ce67…7b4a99 ↗](https://sepolia.basescan.org/tx/0xac63ce67feae2a590b9ac91d2e58bef314c6a37bcd4374ad3f901c34ef7b4a99)         |
+| Receive funds                              | [0x695c6d90…de9a88 ↗](https://hashscan.io/testnet/transaction/0x695c6d903053a61a7f7a1d8e21b40e0335cc79d9b9db6461f0a1eb1b1ade9a88) |
+| Swap USDC → HBAR                           | [0x623a52f9…e1ca83 ↗](https://hashscan.io/testnet/transaction/0x623a52f98bdbc8279a12a11169dedb490027e629ade020630a34f23954e1ca83) |
+| Authorize repayment                        | [0xbf8bd7a0…15c4dc ↗](https://hashscan.io/testnet/transaction/0xbf8bd7a01eb174f8ae02d52133937a3475e9d67c403d28d371120a81cd15c4dc) |
+| Repay with collateral and return remainder | [0x465b21b3…044bfd ↗](https://sepolia.basescan.org/tx/0x465b21b38e09347454ea5f9d3fd9190939d7dead2ab1d944077b688a2c044bfd)         |
+| Confirm repayment                          | [0x6453cfc8…4612ae ↗](https://hashscan.io/testnet/transaction/0x6453cfc88403f159987f143b49a55969b8600d9f408b2c6c95e535d7624612ae) |
 
 ## Setup
 
@@ -223,8 +185,7 @@ for a hosted website. Redis is optional. Wallet keys stay in
 `packages/nextjs/.hedge/wallets.json`.
 
 For a hosted backend, set `HEDGE_LOCAL_TESTNET=0`, use an HTTPS `/operator` URL
-in `hedge.config.json`, and set `CORS_ORIGINS` to your app URL. Borrowers authorize
-offer requests and sign transactions with their own wallets; server wallet signing is disabled.
+in `hedge.config.json`, and set `CORS_ORIGINS` to your app URL. The operator signs offers and CCIP submissions; borrowers sign their own transactions.
 
 <details>
 <summary>Start PostgreSQL locally</summary>
@@ -334,31 +295,7 @@ The provider loads public config, verifies contracts and includes one modal and 
 `onContinue` receives confirmed funding; your app implements its next action.
 Authenticated backends can supply the provider’s `request` transport.
 
-<details>
-<summary>Install into another app (packages are not published yet)</summary>
-
-From this repository:
-
-```sh
-npm run build:packages
-mkdir -p /tmp/hedge-packages
-npm pack --workspace @hedge/schema --workspace @hedge/bindings \
-  --workspace @hedge/sdk --workspace @hedge/frontend --pack-destination /tmp/hedge-packages
-```
-
-From your app:
-
-```sh
-npm install /tmp/hedge-packages/hedge-{schema,bindings,sdk,frontend}-0.1.0.tgz
-mkdir -p public
-curl -fsS http://127.0.0.1:3002/hedge.config.json -o public/hedge.config.json
-```
-
-Set the copied config’s `operator_url` to your backend and allow your app origin in
-`CORS_ORIGINS`. You can also pass the provider a hosted `config` URL.
-Use a client component in Next.js. The loopback test service cannot serve remote users.
-
-</details>
+For installation in another React app, see the [integration guide](https://hedge-hedera.vercel.app/docs#integration).
 
 `packages/nextjs` owns the Next.js website, `/docs`, and `/demo` swap/runtime code.
 `packages/frontend` contains only reusable Hedge integration. For website-only development,
@@ -384,12 +321,12 @@ This test policy carries reorganization risk and is not a production default.
 
 For custom contract source, stop services and run `npm run hedge -- deploy`.
 It builds/deploys a new pair, deposits 5 test USDC, verifies it and updates the deployment
-and public contract config. It retains your selected operator/endpoint and old recovery
-journals. Existing contracts and loan obligations remain intact. Custom ABIs require matching
-bindings/SDK changes. The deploy command retains **40 HBAR / 0.005 ETH** gas buffers;
-the recorded deployment explicitly used a smaller 5 HBAR reserve.
+and public contract config. Existing loan obligations remain intact. Custom ABIs require
+matching bindings. Deployment retains **40 HBAR / 0.005 ETH** gas buffers.
 
 ## Reference
+
+Run `npm run check` to validate contracts, bindings and TypeScript.
 
 <details>
 <summary>Protocol rules</summary>
@@ -443,27 +380,8 @@ An outage can delay progress without allowing an agreement override.
 | `packages/nextjs`                          | Next.js website and real swap at `/demo`         |
 | `scripts/hedge.ts`                         | Process/deployment management                    |
 
-`app.ts` wires features; shared code does not import them. Packages do not depend on
-the server. Registry/codegen lives in bindings. Advanced `useHedge().ready()` returns
-the client; `useHedge().open({ credit_id })` resumes a selected loan.
-
-The client exposes `intent(request)`, `credit(id)`, `credit.collateral` and
-`operator(address)` handles. Mutations need the appropriate signer; subscriptions
-return cleanup functions. Multiple outstanding loans require explicit selection.
-Browser checkpoints contain public IDs/hashes, never keys; funding is reread onchain.
-
-A quoting service supplies `POST /offers` (`{ request, base_owner }` → `{ ids }`) and
-`POST /relay` (`{ credit_id }`). It publishes capital-backed offers using the authorized
-signer; the SDK checks offers onchain. Relay only sponsors existing immutable outboxes.
-The supplied operator service uses the rules in `operator.json` and restricts access to
-loopback. Public config selects an app operator; each accepted agreement fixes its own issuer.
-Operators cannot withdraw other operators’ capital, withdraw their offers or authorize
-their defaults. `/operator/:address` reads a specific operator’s balance.
-
-Generic backend reads require `buildHedgeApp({ protocol: { manifest, reader } })`
-and registered tracking/indexer workers. `/health` checks liveness; `/ready` checks
-DB/Redis. Observations reject older snapshots/hash conflicts; decimal-string base
-units, leases and deduplication preserve precision/retry ownership.
+Advanced clients use `create_hedge`, `intent()`, `credit(id)` and operator handles.
+The [integration guide](https://hedge-hedera.vercel.app/docs#integration) covers wallet setup and package installation.
 
 </details>
 

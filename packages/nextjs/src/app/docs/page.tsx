@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CodeBlock } from "@/components/code-block";
 import { GuideNav } from "@/components/guide-nav";
 import { integrationCode } from "@/lib/site";
-import { testRuns } from "@/lib/docs-evidence";
+import { demoEvidence } from "@/lib/docs-evidence";
 
 export const metadata: Metadata = {
   title: "Documentation",
@@ -17,16 +17,11 @@ export default function DocsPage() {
         <GuideNav />
         <div>
           <section className="guide-section" id="overview">
-            <h2>How the pieces fit together</h2>
+            <h2>How it works</h2>
             <p>
-              Apps reuse Hedge’s shared contracts. Your platform runs its own backend, sets its
-              rules and supplies its own lending capital on Hedera. Users pledge collateral on Base
-              and receive their loan on Hedera. Your frontend embeds the provider and modal;
-              borrowers connect, review and sign with their own wallets.
-            </p>
-            <p>
-              Hedera owns the canonical loan outcome. Base enforces the agreed pledge. Chainlink
-              CCIP carries authenticated agreement, custody and outcome messages.
+              Supply USDC on Hedera, set your loan terms and embed Use Hedge. Users lock Base
+              collateral, borrow, then continue in your app. Chainlink CCIP confirms custody and
+              repayment between the two chains.
             </p>
           </section>
           <section className="guide-section" id="setup">
@@ -72,8 +67,8 @@ HEDGE_LOCAL_TESTNET=1`}
             <p>
               For a hosted backend, set <code>HEDGE_LOCAL_TESTNET=0</code>, use an HTTPS{" "}
               <code>/operator</code> URL in <code>hedge.config.json</code>, and set{" "}
-              <code>CORS_ORIGINS</code> to your app URL. Borrowers authorize offers and sign
-              transactions with their own wallets; server wallet signing is disabled.
+              <code>CORS_ORIGINS</code> to your app URL. The operator signs offers and CCIP
+              submissions; borrowers sign their own transactions.
             </p>
             <p>
               Your app’s <code>.hedge</code> contains only <code>wallets.json</code>,{" "}
@@ -159,11 +154,9 @@ HEDGE_LOCAL_TESTNET=1`}
             <h3>5. Start your platform</h3>
             <CodeBlock code="npm run hedge -- start" />
             <p>
-              Start runs your backend with your operator, rules and liquidity, plus the bundled
-              website. Startup prints both URLs. Use Hedge in your own app with the integration
-              below; <code>/demo</code> is the included USDC → HBAR swap using SaucerSwap on Hedera
-              Testnet. Borrowers connect and sign with their own wallets. The supplied test service
-              runs on loopback.
+              Starts your backend and website with your operator, rules and liquidity. Startup
+              prints both URLs. The included <code>/demo</code> swaps USDC → HBAR using SaucerSwap
+              on Hedera Testnet.
             </p>
             <p>Stop your services:</p>
             <CodeBlock code="npm run hedge -- stop" />
@@ -204,25 +197,19 @@ curl -fsS http://127.0.0.1:3002/hedge.config.json \\
               language="tsx"
             />
             <p>
-              <code>appWallet</code> supplies Base and Hedera wallet connections and asks users to
-              sign transactions. <code>amount</code> accepts a decimal string or a function that
-              receives the connected Hedera wallet. Your app reads its balance and returns the
-              shortfall, such as <code>"0.1"</code>. Pass <code>undefined</code> while the form is
-              invalid; <code>"0"</code> means no loan is needed. Existing loans remain manageable
-              with an empty form. Hedera wallet identities include the account ID.{" "}
-              <code>resumeAppAction</code> runs after confirmed funding when the user chooses to
-              continue. Your app chooses the action and button label; swapping is the reference
-              example. Further transactions need wallet approval.
+              <code>appWallet</code> connects Base and Hedera and requests signatures. Hedera
+              identities include the account ID. Your app passes a decimal shortfall or a function
+              that calculates it after connection. Pass <code>undefined</code> for an invalid form;{" "}
+              <code>"0"</code> means no borrowing. Existing loans remain manageable.
             </p>
             <p>
-              The provider loads public config, verifies contracts and mounts one modal. It includes
-              styles. Wallet credentials and operator keys stay out of public config. Configure a
-              real backend and wallet services for a hosted app; the supplied loopback test service
-              cannot serve remote users.
+              The provider includes one modal, its styles and config loading.{" "}
+              <code>resumeAppAction</code> runs when the user continues after confirmed funding.
+              Your app refreshes its balance and quote; the user confirms the next transaction.
             </p>
           </section>
           <section className="guide-section" id="protocol">
-            <h2>The loan and your app action are separate</h2>
+            <h2>Loan rules</h2>
             <ul>
               <li>Published offers reserve capital. Accepted terms cannot change.</li>
               <li>
@@ -252,55 +239,35 @@ curl -fsS http://127.0.0.1:3002/hedge.config.json \\
                 proof of delivery or funding.
               </li>
             </ul>
-            <p>
-              Deployment policy and accepted agreements own authority. These setup notes do not
-              replace the protocol rules in the root README.
-            </p>
           </section>
           <section className="guide-section" id="evidence">
-            <h2>Recorded testnet runs</h2>
-            <p>
-              Hedera Testnet and Base Sepolia. Receipt links identify the contracts used in each
-              run.
-            </p>
-            {testRuns.map(({ title, description, receipts }) => (
-              <div key={title}>
-                <h3>{title}</h3>
-                <p>{description}</p>
-                <details>
-                  <summary>Transaction receipts</summary>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th scope="col">Step</th>
-                        <th scope="col">Receipt</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {receipts.map(({ step, label, url }) => (
-                        <tr key={step}>
-                          <td>{step}</td>
-                          <td>
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noreferrer"
-                              aria-label={`${step} receipt`}
-                            >
-                              {label}
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </details>
-              </div>
-            ))}
-            <p>
-              Run <code>npm run check</code> for local validation. Last verified coverage: 333
-              TypeScript and 150 Solidity tests. These recorded runs are testnet evidence.
-            </p>
+            <h2>{demoEvidence.title}</h2>
+            <p>{demoEvidence.description}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Step</th>
+                  <th scope="col">Transaction</th>
+                </tr>
+              </thead>
+              <tbody>
+                {demoEvidence.receipts.map(({ step, label, url }) => (
+                  <tr key={step}>
+                    <td>{step}</td>
+                    <td>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`${step} transaction`}
+                      >
+                        {label}
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </section>
         </div>
       </div>
