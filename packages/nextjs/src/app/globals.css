@@ -263,25 +263,6 @@
     color: #c8b6e2;
     border-color: #ffffff30;
   }
-  .networks {
-    padding-block: 59px 49px;
-    text-align: center;
-    border-bottom: 1px solid #ffffff08;
-  }
-  .networks > p {
-    margin-bottom: 26px;
-    color: #79737f;
-    letter-spacing: 0.2px;
-  }
-  .network-name {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    color: #a9a4b1;
-    font-size: 25px;
-    font-weight: 550;
-    letter-spacing: -0.8px;
-  }
   .eyebrow {
     margin-bottom: 18px;
     font-size: 10px;
@@ -867,12 +848,6 @@
     .hero-scroll {
       margin-top: 0;
     }
-    .networks {
-      padding-block: 45px;
-    }
-    .network-name {
-      font-size: 23px;
-    }
     .section-space {
       padding-block: 44px;
     }
@@ -982,9 +957,6 @@
     }
     .hero-actions .action-text {
       padding-inline: 0;
-    }
-    .network-name {
-      font-size: 21px;
     }
     .why-panel,
     .demo-panel {

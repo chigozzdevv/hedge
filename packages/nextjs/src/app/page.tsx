@@ -1,5 +1,4 @@
 import { Hero } from "@/sections/landing/hero";
-import { Networks } from "@/sections/landing/networks";
 import { WhyHedge } from "@/sections/landing/why-hedge";
 import { HowItWorks } from "@/sections/landing/how-it-works";
 import { Developers } from "@/sections/landing/developers";
@@ -12,12 +11,11 @@ export default function LandingPage() {
   return (
     <main id="main-content">
       <Hero />
-      <Networks />
+      <UnderHood />
       <WhyHedge />
       <HowItWorks />
       <Developers />
       <Demo />
-      <UnderHood />
       <Faq />
       <Closing />
     </main>
