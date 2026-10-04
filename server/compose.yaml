@@ -1,0 +1,70 @@
+name: hedge
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: hedge
+      POSTGRES_DB: hedge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD in .env}
+    volumes:
+      - database:/var/lib/postgresql/data
+    networks:
+      - storage
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hedge -d hedge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 512m
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+  backend:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    env_file: ../.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3003
+      HEDGE_LOCAL_TESTNET: "0"
+      HEDGE_APP_DIR: /app/packages/nextjs
+      HEDGE_DEPLOYMENT_ROOT: /app
+    volumes:
+      - ../packages/nextjs/.hedge:/app/packages/nextjs/.hedge:ro
+    networks:
+      - edge
+      - storage
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3003/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 1g
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+volumes:
+  database:
+networks:
+  edge:
+    name: hedge-edge
+  storage:
+    internal: true
