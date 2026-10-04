@@ -3,6 +3,7 @@ import {
   create_hedge,
   EvmHedgeAdapter,
   EvmHedgeReader,
+  HedgeError,
   PendingError,
   type CreditSummary,
   type DeploymentManifest,
@@ -370,6 +371,7 @@ describe("Use Hedge modal chain boundaries", () => {
     await f.review();
     await f.modal.accept();
     expect(f.modal.getSnapshot().creditId).toBe("loan-1");
+    expect(f.modal.getSnapshot().error).toBeUndefined();
     f.modal.close();
     await first.promise;
     const second = await f.open();
@@ -378,6 +380,103 @@ describe("Use Hedge modal chain boundaries", () => {
     expect(f.adapter.resume).toHaveBeenCalledTimes(1);
     f.modal.close();
     await second.promise;
+  });
+  it.each(["custody_pending", "funding_pending"])(
+    "keeps %s as progress and observes funding without another acceptance",
+    async (stage) => {
+      const f = fixture();
+      f.setSummary({ ...funded, state: "accepted", amount_due: 0n, payment_deadline: null });
+      f.setPayout(null);
+      f.accept.mockImplementation(async () => {
+        throw new PendingError("Payout is still pending", {
+          instance_id: "fixture",
+          credit_id: "loan-1",
+          stage,
+        });
+      });
+      const opening = await f.open();
+      await f.review();
+      await f.modal.accept();
+      await f.modal.refresh();
+      expect(f.modal.getSnapshot()).toMatchObject({ screen: "setup", busy: false });
+      expect(f.modal.getSnapshot().error).toBeUndefined();
+      expect(f.modal.getSnapshot().funding).toBeUndefined();
+      expect(opening.onFunded).not.toHaveBeenCalled();
+      f.setSummary(funded);
+      f.setPayout(receipt);
+      await f.modal.refresh();
+      expect(f.modal.getSnapshot().screen).toBe("funded");
+      await f.modal.continueToApp();
+      await expect(opening.promise).resolves.toEqual(receipt);
+      expect(f.accept).toHaveBeenCalledTimes(1);
+      expect(f.adapter.resume).not.toHaveBeenCalled();
+    },
+  );
+  it("waits for an indexed payout receipt without an error or app handoff", async () => {
+    const f = fixture();
+    const fundingRead = vi.fn<HedgeAdapter["funding"]>(async () => {
+      throw new HedgeError("FUNDING_PENDING", "The confirmed payout receipt is not available yet");
+    });
+    f.adapter.funding = fundingRead;
+    const opening = await f.open({ credit_id: "loan-1" });
+    await f.modal.refresh();
+    expect(f.modal.getSnapshot().screen).toBe("setup");
+    expect(f.modal.getSnapshot().error).toBeUndefined();
+    expect(f.modal.getSnapshot().funding).toBeUndefined();
+    expect(opening.onFunded).not.toHaveBeenCalled();
+    fundingRead.mockResolvedValue(receipt);
+    await f.modal.refresh();
+    expect(f.modal.getSnapshot().screen).toBe("funded");
+    await f.modal.continueToApp();
+    await expect(opening.promise).resolves.toEqual(receipt);
+  });
+  it("keeps the funding screen when acceptance completes before payout indexing", async () => {
+    const f = fixture();
+    f.setPayout(null);
+    f.accept.mockImplementation(async (_request, options) => {
+      options.on_progress?.({ instance_id: "fixture", credit_id: "loan-1", stage: "funded" });
+      throw new PendingError("The confirmed payout receipt is not available yet", {
+        instance_id: "fixture",
+        credit_id: "loan-1",
+        stage: "funding_pending",
+      });
+    });
+    const opening = await f.open();
+    await f.review();
+    await f.modal.accept();
+    await f.modal.refresh();
+    expect(f.modal.getSnapshot()).toMatchObject({ screen: "setup", summary: { state: "funded" } });
+    expect(f.modal.getSnapshot().error).toBeUndefined();
+    expect(f.modal.getSnapshot().funding).toBeUndefined();
+    expect(opening.onFunded).not.toHaveBeenCalled();
+    f.setPayout(receipt);
+    await f.modal.refresh();
+    await f.modal.continueToApp();
+    await expect(opening.promise).resolves.toEqual(receipt);
+  });
+  it("still reports an invalid pending checkpoint and a mismatched payout", async () => {
+    const f = fixture();
+    f.accept.mockImplementation(async () => {
+      throw new PendingError("Pending", {
+        instance_id: "another-instance",
+        credit_id: "loan-1",
+        stage: "funding_pending",
+      });
+    });
+    const opening = await f.open();
+    await f.review();
+    await f.modal.accept();
+    expect(f.modal.getSnapshot().error).toContain("another deployment");
+    f.modal.close();
+    await opening.promise;
+    f.adapter.funding = async () => {
+      throw new HedgeError("FUNDING_MISMATCH", "The payout does not match the accepted loan");
+    };
+    const recovery = await f.open({ credit_id: "loan-1" });
+    expect(f.modal.getSnapshot().error).toContain("does not match");
+    expect(f.modal.getSnapshot().funding).toBeUndefined();
+    f.modal.close();
+    await recovery.promise;
   });
   it("refreshes confirmed collateral during pending funding without enabling continuation", async () => {
     const f = fixture();

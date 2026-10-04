@@ -1,5 +1,6 @@
 import {
   HedgeError,
+  PendingError,
   sameAddress,
   type Checkpoint,
   type HedgeClient,
@@ -83,9 +84,8 @@ export class HedgeModalController {
           reportedError = boundaryError;
         }
       }
-      this.update({
-        error: errorMessage(reportedError),
-      });
+      if (reportedError instanceof PendingError) return;
+      this.update({ error: errorMessage(reportedError) });
     } finally {
       this.update({ busy: false });
     }
@@ -246,7 +246,10 @@ export class HedgeModalController {
     const [summary, terms, funding] = await Promise.all([
       credit.summary(),
       this.services.agreement(id),
-      credit.funding(),
+      credit.funding().catch((error: unknown) => {
+        if (error instanceof HedgeError && error.code === "FUNDING_PENDING") return null;
+        throw error;
+      }),
     ]);
     if (
       terms.credit_id !== id ||

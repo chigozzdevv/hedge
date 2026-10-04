@@ -321,7 +321,10 @@ export class EvmHedgeAdapter implements HedgeAdapter {
         options,
       );
       await this.advance(id, options);
-      const result = await this.funding(id);
+      const result = await this.funding(id).catch((error: unknown) => {
+        if (error instanceof HedgeError && error.code === "FUNDING_PENDING") return null;
+        throw error;
+      });
       if (!result)
         throw new PendingError("Payout is still pending. Continue setup for this loan.", {
           instance_id: this.reader.manifest.instance_id,
@@ -343,7 +346,8 @@ export class EvmHedgeAdapter implements HedgeAdapter {
     }
     await this.identity("hedera", loan.agreement.terms.borrower);
     await this.options.relay(id);
-    const deadline = Date.now() + (this.options.waitMs ?? 180_000);
+    const waitMs = this.options.waitMs ?? 180_000;
+    let deadline = Date.now() + waitMs;
     this.progress(id, "agreement_pending", options);
     for (;;) {
       loan = await this.reader.loan(id);
@@ -384,6 +388,7 @@ export class EvmHedgeAdapter implements HedgeAdapter {
         );
         this.progress(id, "custody_pending", options);
         await this.options.relay(id);
+        deadline = Date.now() + waitMs;
       }
       if (Date.now() > deadline)
         throw new PendingError("CCIP delivery is pending. Your saved loan can be resumed.", {
@@ -430,8 +435,12 @@ export class EvmHedgeAdapter implements HedgeAdapter {
         return false;
       }
     });
-    if (!log?.transactionHash)
+    if (!log?.transactionHash) {
+      // The relay can expose loan state before the mirror node indexes its payout event.
+      this.eventCache = undefined;
+      this.eventBlock = undefined;
       throw new HedgeError("FUNDING_PENDING", "The confirmed payout receipt is not available yet");
+    }
     const receipt = await this.reader.confirmed("hedera", log.transactionHash);
     if (receipt.blockHash !== log.blockHash) {
       this.eventCache = undefined;

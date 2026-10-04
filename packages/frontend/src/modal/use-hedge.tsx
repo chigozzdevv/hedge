@@ -122,8 +122,8 @@ export function HedgeModalDialog({
   const confirmingCollateral =
     screen === "setup" &&
     (summary?.collateral_state === "locked" ||
-      stage === "custody_pending" ||
-      stage.endsWith("-lock"));
+      !!transactions?.collateral ||
+      stage === "custody_pending");
   const approvalPending = busy && stage.includes("-collateral-");
   const lockPending = busy && stage.includes("-lock_");
   const collateralNote = confirmingCollateral

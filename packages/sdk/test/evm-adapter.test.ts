@@ -21,6 +21,7 @@ import {
 } from "../src/evm/chain-reader";
 import { delegationManager, delegationParameters, redemptionAbi } from "../src/evm/delegated-call";
 import { EvmHedgeAdapter, type EvmWallet } from "../src/evm/evm-adapter";
+import { HedgeError } from "../src/client/hedge-error";
 import type { DeploymentManifest } from "@hedge/schema";
 
 const address = (n: string) => `0x${n.repeat(40)}` as Address;
@@ -130,6 +131,40 @@ function fixture() {
   return { reader, loan, id, adapter, wallet, journal, relay };
 }
 describe("real EVM adapter boundaries", () => {
+  it("gives custody delivery a fresh wait window after wallet signing and locking", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    try {
+      const f = fixture();
+      f.adapter.options.waitMs = 1000;
+      const custody = {
+        agreement: f.loan.agreement,
+        agreementHash: f.loan.agreementHash,
+        authorized: true,
+        locked: false,
+        claimed: false,
+        outcome: 0,
+      };
+      vi.spyOn(f.reader, "custody").mockResolvedValue(custody);
+      vi.spyOn(f.adapter, "ensureAllowance").mockResolvedValue();
+      vi.spyOn(f.adapter, "transact").mockImplementation(async (tx) => {
+        vi.setSystemTime(5000);
+        custody.locked = true;
+        return { chain: tx.chain, hash: hash("a"), confirmed: true };
+      });
+      f.relay.mockImplementation(async () => {
+        if (custody.locked) f.loan.state = 2;
+      });
+      const summary = { state: "funded", collateral_state: "locked" } as const;
+      vi.spyOn(f.reader, "summary").mockResolvedValue(summary as never);
+      const resuming = expect(f.adapter.resume(f.id)).resolves.toEqual(summary);
+      await vi.runAllTimersAsync();
+      await resuming;
+      expect(f.adapter.transact).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("authorizes collateral repayment, settles Base and waits for the canonical receipt", async () => {
     const f = fixture();
     f.loan.state = 2;
@@ -375,6 +410,72 @@ describe("real EVM adapter boundaries", () => {
     vi.spyOn(reader.clients.hedera, "getBlockNumber").mockResolvedValue(10n);
     vi.spyOn(reader, "logs").mockResolvedValue([]);
     await expect(adapter.funding(id)).rejects.toMatchObject({ code: "FUNDING_PENDING" });
+  });
+  it("returns a resumable funding checkpoint when payout indexing trails acceptance", async () => {
+    const f = fixture();
+    f.loan.state = 2;
+    const a = f.loan.agreement;
+    const offer = await f.reader.projectOffer(
+      a.offerId,
+      a.terms,
+      termsHash(a.instanceId, a.offerId, token, a.terms, operator),
+      operator,
+    );
+    vi.spyOn(f.adapter, "offers").mockResolvedValue([offer]);
+    vi.spyOn(f.adapter, "transact").mockResolvedValue({
+      chain: "hedera",
+      hash: hash("a"),
+      confirmed: true,
+    });
+    vi.spyOn(f.adapter, "funding").mockRejectedValue(
+      new HedgeError("FUNDING_PENDING", "The confirmed payout receipt is not available yet"),
+    );
+    await expect(
+      f.adapter.accept({ funding: offer.funding }, { offer_id: offer.id, reviewedOffer: offer }),
+    ).rejects.toMatchObject({
+      code: "PENDING",
+      checkpoint: { instance_id: manifest.instance_id, credit_id: f.id, stage: "funding_pending" },
+    });
+    expect(f.adapter.transact).toHaveBeenCalledTimes(1);
+  });
+  it("rereads payout events indexed later in a block already observed", async () => {
+    const { reader, loan, adapter, id } = fixture();
+    loan.state = 2;
+    loan.fundedAt = 100n;
+    loan.paymentDeadline = 200n;
+    vi.spyOn(reader.clients.hedera, "getBlockNumber").mockResolvedValue(10n);
+    const log = {
+      transactionHash: hash("a"),
+      blockHash: hash("b"),
+      topics: encodeEventTopics({
+        abi: hedgeLendingAbi,
+        eventName: "LoanFunded",
+        args: { loanId: id },
+      }),
+      data: encodeAbiParameters(
+        [{ type: "address" }, { type: "uint256" }, { type: "uint256" }],
+        [borrower, loan.agreement.terms.principal, loan.paymentDeadline],
+      ),
+    };
+    const logs = vi
+      .spyOn(reader, "logs")
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([log] as never);
+    vi.spyOn(reader, "confirmed").mockResolvedValue({ blockHash: log.blockHash } as never);
+    vi.spyOn(reader, "offer").mockResolvedValue({
+      id: loan.agreement.offerId,
+      funding: {
+        token,
+        amount: loan.agreement.terms.principal,
+        recipient: { address: borrower, account_id: "0.0.2" },
+      },
+    } as never);
+    await expect(adapter.funding(id)).rejects.toMatchObject({ code: "FUNDING_PENDING" });
+    await expect(adapter.funding(id)).resolves.toMatchObject({
+      credit_id: id,
+      transaction: { hash: log.transactionHash, confirmed: true },
+    });
+    expect(logs).toHaveBeenCalledTimes(2);
   });
   it("resumes the saved transaction hash after a confirmation timeout", async () => {
     const { adapter, reader, wallet, id } = fixture();
