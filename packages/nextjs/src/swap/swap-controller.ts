@@ -24,6 +24,7 @@ const displayAssets = Object.freeze([
   { id: "usdc", symbol: "USDC" },
   { id: "hbar", symbol: "HBAR" },
 ]);
+class WalletDisconnectedError extends Error {}
 
 export class SwapController {
   readonly assets: readonly { id: string; symbol: string }[];
@@ -74,7 +75,13 @@ export class SwapController {
     try {
       await action();
     } catch (error) {
-      this.update({ error: error instanceof Error ? error.message : "Please try again." });
+      if (error instanceof WalletDisconnectedError)
+        this.update({
+          wallet: undefined,
+          balance: undefined,
+          quote: this.snapshot.transactionId ? this.snapshot.quote : undefined,
+        });
+      else this.update({ error: error instanceof Error ? error.message : "Please try again." });
     } finally {
       this.update({ busy: false });
     }
@@ -102,7 +109,7 @@ export class SwapController {
     return this.services ? this.asset(id) : undefined;
   }
   private wallet(value: WalletIdentity | null): WalletIdentity {
-    if (!value) throw new Error("Connect your Hedera wallet.");
+    if (!value) throw new WalletDisconnectedError("Connect your Hedera wallet.");
     if (
       value.chain_id !== this.asset(this.snapshot.sell).chain_id ||
       !/^0x[0-9a-fA-F]{40}$/.test(value.address) ||
