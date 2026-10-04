@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "deployment": {
+    "schema_version": 1,
+    "instance_id": "0xc5d5090a43b4a4604884ea2ddc16b288f6789ca0a571af56a2d1799f5c68c236",
+    "build_id": "solc-0.8.24:sha256:2df517e1d4aac1e08987a440538c0812c57df494518ecbb6af6ab334676d3c88",
+    "protocol_version": 3,
+    "deployer": "0x34b02c4b64b29c65a82561b04920a2fd665c03b1",
+    "hedera": {
+      "chain_id": 296,
+      "router": "0x802c5f84ead128ff36fd6a3f8a418e339f467ce4",
+      "selector": "222782988166878823",
+      "contract": "0xd2bec2da396a7b4c0f3b6ecf6daba410fba17bc6",
+      "code_hash": "0xa08cc3b92bc88bcf74b00d5741ca21ccd1d6e4dd55ef9ca06c17b08bbee9ec30",
+      "ccip_policy": {
+        "requested_finality": "0x00000000",
+        "allowed_finality": "0x00000005"
+      },
+      "contract_id": "0.0.10855309"
+    },
+    "base": {
+      "chain_id": 84532,
+      "router": "0xd3b06cebf099ce7da4accf578aaebfdbd6e88a93",
+      "selector": "10344971235874465080",
+      "contract": "0xd0abae3256b937463362eb2cb3f4cbfa2a858caf",
+      "code_hash": "0x5fa86e2d2de1a209402d7d420f8a5953d59fa245fc8f336c5436087b9a8d9173",
+      "ccip_policy": {
+        "requested_finality": "0x00000005",
+        "allowed_finality": "0x00000000"
+      }
+    }
+  },
+  "operator": "0x34b02c4B64b29C65a82561b04920A2fd665c03B1",
+  "rpc": {
+    "hedera": "https://testnet.hashio.io/api",
+    "base": "https://sepolia.base.org"
+  },
+  "start_block": {
+    "hedera": "41341636",
+    "base": "47669276"
+  },
+  "mirror_url": "https://testnet.mirrornode.hedera.com",
+  "operator_url": "http://127.0.0.1:3003/testnet",
+  "verification": {
+    "verified_at": "2026-10-04T09:42:20.848409+00:00",
+    "hedera": {
+      "transaction_hash": "0x600e6307358ba393b6385b96929effe71a6ece74d28df7af7dc0c666b4513523",
+      "receipt_status": 1,
+      "block_number": "41341636",
+      "block_hash": "0x95c623b4512b97dd5b8396f06a7bb4cf6ccc24049aacbd310c78e23fbf0b10ee",
+      "contract": "0xd2bec2da396a7b4c0f3b6ecf6daba410fba17bc6",
+      "code_hash": "0xa08cc3b92bc88bcf74b00d5741ca21ccd1d6e4dd55ef9ca06c17b08bbee9ec30",
+      "instance_id": "0xc5d5090a43b4a4604884ea2ddc16b288f6789ca0a571af56a2d1799f5c68c236",
+      "compiled_runtime_matched": true
+    },
+    "base": {
+      "transaction_hash": "0xad8097b598b183f8517786e54bfc92a39fc1ec7de831bc9027e443bda3a6efa5",
+      "receipt_status": 1,
+      "block_number": "47669276",
+      "block_hash": "0x78e7ac36780ebef35c1562eed56b346241cbf6361319457e5e81f64379e4c3a9",
+      "contract": "0xd0abae3256b937463362eb2cb3f4cbfa2a858caf",
+      "code_hash": "0x5fa86e2d2de1a209402d7d420f8a5953d59fa245fc8f336c5436087b9a8d9173",
+      "instance_id": "0xc5d5090a43b4a4604884ea2ddc16b288f6789ca0a571af56a2d1799f5c68c236",
+      "compiled_runtime_matched": true
+    }
+  }
+}
