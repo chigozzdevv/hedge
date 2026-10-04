@@ -7,6 +7,9 @@ import {
   decimalAmountSchema,
   parseAmount,
   tokenMetadataSchema,
+  walletIdentitySchema,
+  type FundingRequest,
+  type WalletIdentity,
   type DeploymentManifest,
   type LoanRequest,
 } from "@hedge/schema";
@@ -84,11 +87,37 @@ export class HedgeClient {
           },
         }
       : {};
+    let resolvedFunding: FundingRequest | undefined;
+    const suppliedAmount = options.amount;
+    const resolveAmount = async (wallet: WalletIdentity) => {
+      const identity = freezeRecord(walletIdentitySchema.parse(wallet));
+      if (identity.chain_id !== this.manifest.hedera.chain_id || !identity.account_id)
+        throw new HedgeError("WALLET_MISMATCH", "Connect the configured Hedera wallet");
+      if (typeof suppliedAmount !== "function" || !token)
+        throw new HedgeError("INVALID_REQUEST", "The app must supply the loan amount");
+      resolvedFunding = undefined;
+      const value = decimalAmountSchema.parse(await suppliedAmount(identity));
+      if (/^0+(?:\.0*)?$/.test(value)) return "0";
+      resolvedFunding = freezeRecord(
+        fundingRequestSchema.parse({
+          token: token.address,
+          amount: parseAmount(value, token.decimals),
+          recipient: { address: identity.address, account_id: identity.account_id },
+        }),
+      );
+      return value;
+    };
     const request: ModalRequest = freezeRecord(
       options.credit_id !== undefined
         ? { credit_id: idSchema.parse(options.credit_id), ...presentation }
         : options.amount !== undefined
-          ? { amount: decimalAmountSchema.parse(options.amount), ...presentation }
+          ? {
+              amount:
+                typeof suppliedAmount === "function"
+                  ? resolveAmount
+                  : decimalAmountSchema.parse(suppliedAmount),
+              ...presentation,
+            }
           : { funding: fundingRequestSchema.parse(options.funding), ...presentation },
     );
     const onFunded = options.onFunded;
@@ -97,14 +126,17 @@ export class HedgeClient {
     await this.ready();
     if (request.amount !== undefined && !this.config.adapter.loanToken)
       throw new HedgeError("TOKEN_UNAVAILABLE", "The adapter must read the lending asset");
-    // Validate precision and asset before opening the UI. Recipient is resolved in the connected modal.
+    // Verify the asset now; deferred amounts are validated after wallet connection.
     const token =
       request.amount !== undefined
         ? tokenMetadataSchema.parse(await this.config.adapter.loanToken?.())
         : undefined;
     if (token && token.chain_id !== this.manifest.hedera.chain_id)
       throw new HedgeError("TOKEN_MISMATCH", "Loan token belongs to another network");
-    const amount = token ? parseAmount(request.amount!, token.decimals) : undefined;
+    const amount =
+      token && typeof request.amount === "string"
+        ? parseAmount(request.amount, token.decimals)
+        : undefined;
     const selection = await this.config.modal(this, request);
     if (selection === null) return null;
     const credit = this.credit(selection.credit_id);
@@ -118,8 +150,14 @@ export class HedgeClient {
         stage: "funding_pending",
       });
     if (request.funding) this.context.assertFunding(result.funding, request.funding);
+    if (typeof request.amount === "function") {
+      if (!resolvedFunding)
+        throw new HedgeError("INVALID_REQUEST", "Confirm the app's loan amount before continuing");
+      this.context.assertFunding(result.funding, resolvedFunding);
+    }
     if (
       token &&
+      typeof request.amount === "string" &&
       (!sameAddress(token.address, result.funding.token) || result.funding.amount !== amount)
     )
       throw new HedgeError(

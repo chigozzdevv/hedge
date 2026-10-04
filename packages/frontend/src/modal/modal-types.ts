@@ -50,6 +50,7 @@ export interface ModalSnapshot {
   busy: boolean;
   repaymentSource?: "wallet" | "collateral";
   request?: ModalRequest;
+  requestedAmount?: string;
   base?: WalletIdentity;
   hedera?: WalletIdentity;
   offers: readonly Offer[];

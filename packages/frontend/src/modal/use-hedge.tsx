@@ -147,7 +147,11 @@ export function HedgeModalDialog({
   let title = "Connect wallets",
     primary = "Continue";
   let action: () => void | Promise<void> = actions.review;
-  let disabled = busy || !model.base || !model.hedera;
+  let disabled =
+    busy ||
+    !model.base ||
+    !model.hedera ||
+    (typeof model.request?.amount === "function" && !model.requestedAmount && !model.creditId);
   if (screen === "review") {
     title = model.request?.context?.title ?? "Review your loan";
     primary = `Borrow ${loanAmount}`;

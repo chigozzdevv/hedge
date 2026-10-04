@@ -12,6 +12,7 @@ import {
   type Offer,
   type Chain,
   type WalletIdentity,
+  type AmountResolver,
 } from "@hedge/sdk";
 import { createHedgeModal, HedgeModalController } from "../src/modal/modal-controller";
 import { formatAmount } from "../src/modal/format-amount";
@@ -140,7 +141,10 @@ function fixture() {
   adapter.loanToken = services.loanToken;
   const client = create_hedge({ manifest, adapter, modal: modal.renderer });
   async function open(
-    request: { funding: typeof funding } | { credit_id: string } | { amount: string } = { funding },
+    request:
+      | { funding: typeof funding }
+      | { credit_id: string }
+      | { amount: string | AmountResolver } = { funding },
   ) {
     const onFunded = vi.fn();
     const promise = client.open({
@@ -178,6 +182,75 @@ function fixture() {
   };
 }
 describe("Use Hedge modal chain boundaries", () => {
+  it("opens wallet connection before calculating the amount and creates no offer until Continue", async () => {
+    const f = fixture();
+    const calculate = vi.fn(async () => "3");
+    f.adapter.offers = vi.fn(async () => [
+      { ...offer, funding: { ...funding, amount: 3_000_000n } },
+    ]);
+    const opening = await f.open({ amount: calculate });
+    expect(f.modal.getSnapshot().screen).toBe("connect");
+    expect(calculate).not.toHaveBeenCalled();
+    await f.modal.connect("hedera");
+    expect(calculate).toHaveBeenCalledWith(f.wallets.hedera);
+    expect(f.modal.getSnapshot().requestedAmount).toBe("3");
+    expect(f.adapter.offers).not.toHaveBeenCalled();
+    await f.modal.connect("base");
+    await f.modal.review();
+    expect(f.modal.getSnapshot().screen).toBe("review");
+    expect(f.adapter.offers).toHaveBeenCalledWith(
+      expect.objectContaining({ funding: expect.objectContaining({ amount: 3_000_000n }) }),
+    );
+    expect(f.accept).not.toHaveBeenCalled();
+    f.modal.close();
+    await opening.promise;
+  });
+  it("returns to the app without an offer or funded callback when the connected balance covers the action", async () => {
+    const f = fixture();
+    const opening = await f.open({ amount: () => "0" });
+    await f.modal.connect("hedera");
+    await expect(opening.promise).resolves.toBeNull();
+    expect(f.modal.getSnapshot().open).toBe(false);
+    expect(f.adapter.offers).not.toHaveBeenCalled();
+    expect(f.accept).not.toHaveBeenCalled();
+    expect(opening.onFunded).not.toHaveBeenCalled();
+  });
+  it("requires a fresh review when the app shortfall changes before loan acceptance", async () => {
+    const f = fixture();
+    let amount = "3";
+    f.adapter.offers = vi.fn(async () => [
+      { ...offer, funding: { ...funding, amount: 3_000_000n } },
+    ]);
+    const opening = await f.open({ amount: () => amount });
+    await f.review();
+    expect(f.modal.getSnapshot().screen).toBe("review");
+    amount = "2";
+    await f.modal.accept();
+    expect(f.accept).not.toHaveBeenCalled();
+    expect(f.modal.getSnapshot().screen).toBe("connect");
+    expect(f.modal.getSnapshot().error).toContain("balance changed");
+    f.modal.close();
+    await opening.promise;
+  });
+  it("ignores a late balance calculation after closing the connection screen", async () => {
+    const f = fixture();
+    let resolve!: (amount: string) => void;
+    const calculation = new Promise<string>((done) => {
+      resolve = done;
+    });
+    const calculate = vi.fn(() => calculation);
+    const opening = await f.open({ amount: calculate });
+    const connecting = f.modal.connect("hedera");
+    await vi.waitFor(() => expect(calculate).toHaveBeenCalledOnce());
+    f.modal.close();
+    await expect(opening.promise).resolves.toBeNull();
+    resolve("3");
+    await connecting;
+    expect(f.modal.getSnapshot().open).toBe(false);
+    expect(f.modal.getSnapshot().requestedAmount).toBeUndefined();
+    expect(f.adapter.offers).not.toHaveBeenCalled();
+    expect(f.accept).not.toHaveBeenCalled();
+  });
   it("recovers confirmed acceptance and locking receipts when reopening without a browser transaction journal", async () => {
     const f = fixture();
     const accept = {

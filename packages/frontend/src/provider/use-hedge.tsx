@@ -1,5 +1,6 @@
 "use client";
-import { useContext, useId, useSyncExternalStore, type ReactNode } from "react";
+import { useContext, useEffect, useId, useSyncExternalStore, type ReactNode } from "react";
+import { decimalAmountSchema } from "@hedge/schema";
 import { HedgeContext } from "./hedge-provider";
 import type { HedgeAction } from "./hedge-runtime";
 import { isLoanComplete } from "../modal/loan-state";
@@ -15,15 +16,21 @@ export function UseHedge({ disabled, className, children, ...action }: UseHedgeP
   const runtime = useContext(HedgeContext);
   if (!runtime) throw new Error("Mount HedgeProvider above UseHedge");
   const state = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot, runtime.getSnapshot);
+  useEffect(() => {
+    void runtime.restore().catch(() => undefined);
+  }, [runtime]);
   const errorId = useId();
-  const summary = state.session?.modal.getSnapshot().summary;
-  const outstanding = summary && !isLoanComplete(summary);
+  const model = state.session?.modal.getSnapshot();
+  const outstanding = model?.creditId && (!model.summary || !isLoanComplete(model.summary));
+  const validAmount =
+    typeof action.amount === "function" ||
+    (decimalAmountSchema.safeParse(action.amount).success && /[1-9]/.test(action.amount as string));
   return (
     <span className="hedge-launch">
       <button
         type="button"
         className={`hedge-launch-button${className ? ` ${className}` : ""}`}
-        disabled={disabled || state.busy}
+        disabled={disabled || state.busy || (!outstanding && !validAmount)}
         aria-describedby={state.error ? errorId : undefined}
         onClick={() => {
           void runtime.continue(action).catch(() => undefined);

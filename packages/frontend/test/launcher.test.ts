@@ -76,6 +76,70 @@ afterEach(() => {
 });
 
 describe("declarative Hedge launcher", () => {
+  it.each([undefined, "", "0", "0.0", "bad", "-1", "1e3"])(
+    "keeps new borrowing inactive for amount %s without initializing or prompting",
+    (amount) => {
+      const wallet = { connect: vi.fn(), wallet: vi.fn(), send: vi.fn() };
+      const html = renderToString(
+        createElement(HedgeProvider, {
+          wallet,
+          children: createElement(UseHedge, { amount }),
+        }),
+      );
+      expect(html).toContain("disabled");
+      expect(wallet.connect).not.toHaveBeenCalled();
+    },
+  );
+  it("restores an outstanding loan and leaves Manage loan active with an empty form", async () => {
+    const f = await fixture();
+    f.wallet.wallet.mockResolvedValue({
+      chain_id: 296,
+      address: config.operator,
+      account_id: "0.0.123",
+    });
+    f.recover.mockResolvedValue([id]);
+    await f.runtime.restore();
+    const html = renderToString(
+      createElement(HedgeContext.Provider, {
+        value: f.runtime,
+        children: createElement(UseHedge, {}),
+      }),
+    );
+    expect(html).toContain("Manage loan");
+    expect(html).not.toContain("disabled");
+    expect(f.wallet.connect).not.toHaveBeenCalled();
+    await f.runtime.continue({});
+    expect(f.open).toHaveBeenCalledWith(expect.objectContaining({ credit_id: id }));
+  });
+  it("passes the app calculation to the modal without invoking it before wallet connection", async () => {
+    const f = await fixture();
+    const calculate = vi.fn(async () => "3");
+    await f.runtime.continue({ amount: calculate });
+    expect(f.open).toHaveBeenCalledWith(expect.objectContaining({ amount: calculate }));
+    expect(calculate).not.toHaveBeenCalled();
+  });
+  it("recovers a loan after connecting in the modal and dismissing it", async () => {
+    const f = await fixture();
+    f.open.mockImplementationOnce(async () => {
+      f.wallet.wallet.mockResolvedValue({
+        chain_id: 296,
+        address: config.operator,
+        account_id: "0.0.123",
+      });
+      f.recover.mockResolvedValue([id]);
+      return null;
+    });
+    await f.runtime.continue({ amount: async () => "3" });
+    await vi.waitFor(() => expect(f.session.modal.getSnapshot().creditId).toBe(id));
+    const html = renderToString(
+      createElement(HedgeContext.Provider, {
+        value: f.runtime,
+        children: createElement(UseHedge, {}),
+      }),
+    );
+    expect(html).toContain("Manage loan");
+    expect(html).not.toContain("disabled");
+  });
   it("renders the host and styled launcher on the server without any network or wallet prompts", () => {
     const request = vi.fn<typeof fetch>();
     const wallet = { connect: vi.fn(), wallet: vi.fn(), send: vi.fn() };
@@ -260,6 +324,7 @@ describe("declarative Hedge launcher", () => {
     await f.runtime.ready();
     vi.spyOn(f.session.modal, "getSnapshot").mockReturnValue({
       ...f.session.modal.getSnapshot(),
+      creditId: id,
       summary: { ...summary, ...loan },
     });
     const html = renderToString(

@@ -1,4 +1,4 @@
-import { HedgeError, type FundingResult, type OpenOptions } from "@hedge/sdk";
+import { HedgeError, type FundingResult, type OpenOptions, type LoanAmount } from "@hedge/sdk";
 import { setupHedge, type HedgeSetup, type HedgeSession } from "./hedge-session";
 import { isLoanComplete } from "../modal/loan-state";
 
@@ -8,7 +8,7 @@ export interface HedgeState {
   error?: Error;
 }
 export type HedgeAction = {
-  amount: string;
+  amount?: LoanAmount;
   continueLabel?: string;
   onContinue?: (funding: FundingResult) => void | Promise<void>;
 };
@@ -20,6 +20,8 @@ export class HedgeRuntime {
   private pending?: Promise<HedgeSession>;
   private abort?: AbortController;
   private unsubscribe?: () => void;
+  private unsubscribeWallet?: () => void;
+  private recovering?: Promise<void>;
   private active = true;
   private generation = 0;
   private operating = false;
@@ -52,7 +54,10 @@ export class HedgeRuntime {
     this.state.session?.modal.close();
     this.unsubscribe?.();
     this.unsubscribe = undefined;
+    this.unsubscribeWallet?.();
+    this.unsubscribeWallet = undefined;
     this.pending = undefined;
+    this.recovering = undefined;
     this.state = { busy: this.operating };
   };
   ready = async (): Promise<HedgeSession["client"]> => (await this.session()).client;
@@ -71,6 +76,9 @@ export class HedgeRuntime {
           throw new HedgeError("PROVIDER_CLOSED", "Hedge provider is no longer mounted");
         }
         this.unsubscribe = session.modal.subscribe(() => this.update({}));
+        this.unsubscribeWallet = session.adapter.options.wallet.subscribe?.(() => {
+          void this.restore().catch(() => undefined);
+        });
         this.update({ session, error: undefined });
         return session;
       })
@@ -80,6 +88,43 @@ export class HedgeRuntime {
     this.pending = pending;
     return pending;
   }
+  restore = (): Promise<void> => {
+    if (this.operating) return Promise.resolve();
+    if (this.recovering) return this.recovering;
+    const generation = this.generation;
+    const pending = (async () => {
+      try {
+        const session = await this.session();
+        let id = session.modal.getSnapshot().creditId;
+        if (!id) {
+          const wallet = await session.adapter.options.wallet.wallet("hedera");
+          if (!wallet) return;
+          const ids = await session.adapter.outstandingLoans(wallet.address);
+          if (ids.length > 1)
+            throw new HedgeError(
+              "LOAN_SELECTION_REQUIRED",
+              "Open a specific loan ID to manage your outstanding loans",
+            );
+          id = ids[0];
+        }
+        if (!id) return;
+        const summary = await session.client.credit(id).summary();
+        if (!this.active || generation !== this.generation || this.operating) return;
+        session.modal.remember({ instance_id: summary.instance_id, credit_id: id }, summary);
+        if (isLoanComplete(summary)) session.modal.forgetCompleted(summary);
+      } catch (error) {
+        if (this.active && generation === this.generation && !this.operating)
+          this.update({
+            error: error instanceof Error ? error : new Error("Could not restore your loan"),
+          });
+        throw error;
+      }
+    })().finally(() => {
+      if (this.recovering === pending) this.recovering = undefined;
+    });
+    this.recovering = pending;
+    return pending;
+  };
   private async exclusive(options: (session: HedgeSession) => Promise<OpenOptions | null>) {
     if (this.operating || this.state.session?.modal.getSnapshot().busy)
       throw new HedgeError("MODAL_BUSY", "An existing loan operation is still in progress");
@@ -101,7 +146,10 @@ export class HedgeRuntime {
       throw error;
     } finally {
       this.operating = false;
-      if (this.active) this.update({});
+      if (this.active) {
+        this.update({});
+        if (generation === this.generation) void this.restore().catch(() => undefined);
+      }
     }
   }
   /** Advanced access uses the same client, modal and operation gate. */
@@ -129,11 +177,13 @@ export class HedgeRuntime {
           resume = ids[0];
         }
       }
-      if (!resume && /^0+(?:\.0+)?$/.test(amount)) return null;
-      return {
-        ...(resume ? { credit_id: resume } : { amount }),
+      const presentation = {
         context: { title: "Use Hedge", continueLabel },
         onFunded: onContinue,
       };
+      if (resume) return { credit_id: resume, ...presentation };
+      if (amount === undefined || (typeof amount === "string" && /^0+(?:\.0*)?$/.test(amount)))
+        return null;
+      return { amount, ...presentation };
     });
 }

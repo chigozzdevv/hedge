@@ -50,12 +50,12 @@ export class HedgeModalController {
 
   constructor(private readonly services: ModalServices) {}
   /** Restore a public ID only. Opening it always rereads the canonical agreement and receipts. */
-  remember(checkpoint: Pick<Checkpoint, "instance_id" | "credit_id">) {
+  remember(checkpoint: Pick<Checkpoint, "instance_id" | "credit_id">, summary?: CreditSummary) {
     this.knownLoans.set(
       idSchema.parse(checkpoint.instance_id),
       idSchema.parse(checkpoint.credit_id),
     );
-    this.update({ creditId: checkpoint.credit_id });
+    this.update({ creditId: checkpoint.credit_id, ...(summary ? { summary } : {}) });
   }
   forgetCompleted(summary: CreditSummary) {
     if (!isLoanComplete(summary) || this.snapshot.creditId !== summary.credit_id) return;
@@ -148,6 +148,41 @@ export class HedgeModalController {
       throw new HedgeError("WALLET_MISMATCH", "Connect the Hedera wallet receiving this loan");
     if (offer && !sameAddress(base.address, offer.collateral.owner))
       throw new HedgeError("WALLET_MISMATCH", "Connect the Base wallet that owns this collateral");
+  }
+  private async resolveAmount() {
+    const request = this.snapshot.request;
+    const wallet = this.snapshot.hedera;
+    const client = this.client;
+    if (!request || request.amount === undefined || !wallet || this.snapshot.creditId) return;
+    this.requestedFunding = undefined;
+    this.update({ requestedAmount: undefined });
+    const value =
+      typeof request.amount === "function" ? await request.amount(wallet) : request.amount;
+    if (!this.snapshot.open || this.snapshot.request !== request || this.client !== client) return;
+    const current = await this.services.wallet("hedera");
+    if (
+      !current ||
+      !sameAddress(current.address, wallet.address) ||
+      current.chain_id !== wallet.chain_id ||
+      current.account_id !== wallet.account_id
+    )
+      throw new HedgeError("WALLET_MISMATCH", "Your wallet changed. Reconnect before reviewing");
+    if (/^0+(?:\.0*)?$/.test(value)) {
+      this.requestedFunding = undefined;
+      this.close();
+      return;
+    }
+    if (!this.services.loanToken)
+      throw new HedgeError("TOKEN_UNAVAILABLE", "The adapter must read the lending asset");
+    const metadata = await this.services.loanToken();
+    const token = this.validateToken("hedera", metadata.address, metadata);
+    if (!this.snapshot.open || this.snapshot.request !== request || this.client !== client) return;
+    this.requestedFunding = fundingRequestSchema.parse({
+      token: token.address,
+      amount: parseAmount(value, token.decimals),
+      recipient: { address: wallet.address, account_id: wallet.account_id },
+    });
+    this.update({ requestedAmount: value });
   }
   private async walletFor(chain: Chain) {
     const current = await this.services.wallet(chain);
@@ -410,7 +445,7 @@ export class HedgeModalController {
         }
         await this.readLoan();
         if (this.snapshot.screen === "funded") this.update({ screen: "manage" });
-      }
+      } else if (typeof request.amount === "function") await this.resolveAmount();
     });
     return selection;
   };
@@ -430,6 +465,8 @@ export class HedgeModalController {
     this.run(async () => {
       const wallet = this.validateWallet(chain, await this.services.connect(chain));
       this.update({ [chain]: wallet });
+      if (typeof this.snapshot.request?.amount === "function" && !this.snapshot.creditId)
+        await this.resolveAmount();
     });
   review = () =>
     this.run(async () => {
@@ -441,7 +478,7 @@ export class HedgeModalController {
         return;
       }
       const request = this.snapshot.request;
-      if (request?.amount !== undefined && !this.requestedFunding) {
+      if (request?.amount !== undefined) {
         const ids = (await this.services.outstandingLoans?.(this.snapshot.hedera!.address)) ?? [];
         if (ids.length > 1)
           throw new HedgeError(
@@ -457,18 +494,8 @@ export class HedgeModalController {
           this.assertWallets(this.snapshot.offer);
           return;
         }
-        if (!this.services.loanToken)
-          throw new HedgeError("TOKEN_UNAVAILABLE", "The adapter must read the lending asset");
-        const metadata = await this.services.loanToken();
-        const token = this.validateToken("hedera", metadata.address, metadata);
-        this.requestedFunding = fundingRequestSchema.parse({
-          token: token.address,
-          amount: parseAmount(request.amount, token.decimals),
-          recipient: {
-            address: this.snapshot.hedera!.address,
-            account_id: this.snapshot.hedera!.account_id,
-          },
-        });
+        await this.resolveAmount();
+        if (!this.snapshot.open) return;
       }
       const funding = this.requestedFunding;
       if (!funding) throw new HedgeError("INVALID_REQUEST", "Select a loan or funding request");
@@ -507,6 +534,17 @@ export class HedgeModalController {
         throw new HedgeError("OFFER_UNAVAILABLE", "Review a funded offer first");
       await this.readWallets();
       this.assertWallets(offer);
+      if (typeof this.snapshot.request?.amount === "function") {
+        await this.resolveAmount();
+        if (!this.snapshot.open) return;
+        if (this.requestedFunding?.amount !== funding.amount) {
+          this.update({ offers: [], offer: undefined, screen: "connect" });
+          throw new HedgeError(
+            "AMOUNT_CHANGED",
+            "Your balance changed. Review the updated loan amount",
+          );
+        }
+      }
       const intent = this.requireClient().intent({ funding });
       const fresh = (await intent.offers()).find((value) => value.id === offer.id);
       if (!fresh || fresh.terms_hash.toLowerCase() !== offer.terms_hash.toLowerCase()) {

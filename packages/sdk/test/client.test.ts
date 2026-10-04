@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { create_hedge, HedgeError, PendingError, type HedgeAdapter } from "../src";
+import {
+  create_hedge,
+  HedgeError,
+  PendingError,
+  type HedgeAdapter,
+  type ModalRenderer,
+} from "../src";
 import type { DeploymentManifest, FundingResult, CreditSummary, Offer } from "@hedge/schema";
 
 const address = `0x${"1".repeat(40)}`;
@@ -83,6 +89,70 @@ function adapter(overrides: Partial<HedgeAdapter> = {}): HedgeAdapter {
   };
 }
 describe("SDK deployment and loan boundaries", () => {
+  it("validates an app amount resolved after connection and binds payout to that wallet", async () => {
+    const identity = { chain_id: 296, ...funding.recipient };
+    const calculate = vi.fn(async () => "0.000001");
+    const modal: ModalRenderer = async (_client, request) => {
+      expect(calculate).not.toHaveBeenCalled();
+      if (typeof request.amount !== "function") throw new Error("Missing amount calculation");
+      expect(await request.amount(identity)).toBe("0.000001");
+      return { credit_id: "loan-1" };
+    };
+    const onFunded = vi.fn();
+    const reader = adapter({
+      loanToken: async () => ({ chain_id: 296, address, symbol: "USDC", decimals: 6 }),
+      funding: async () => result,
+    });
+    const client = create_hedge({ manifest, modal, adapter: reader });
+    await expect(client.open({ amount: calculate, onFunded })).resolves.toEqual(result);
+    expect(calculate).toHaveBeenCalledWith(identity);
+    expect(onFunded).toHaveBeenCalledExactlyOnceWith(result);
+    reader.funding = async () => ({
+      ...result,
+      funding: { ...funding, recipient: { ...funding.recipient, address: `0x${"3".repeat(40)}` } },
+    });
+    calculate.mockClear();
+    await expect(client.open({ amount: calculate, onFunded })).rejects.toMatchObject({
+      code: "FUNDING_MISMATCH",
+    });
+    expect(onFunded).toHaveBeenCalledOnce();
+  });
+  it("rejects invalid deferred amounts before the modal can request an offer", async () => {
+    let amount = "0.0000001";
+    const client = create_hedge({
+      manifest,
+      adapter: adapter({
+        loanToken: async () => ({ chain_id: 296, address, symbol: "USDC", decimals: 6 }),
+      }),
+      modal: async (_client, request) => {
+        if (typeof request.amount !== "function") throw new Error("Missing amount calculation");
+        await request.amount({ chain_id: 296, ...funding.recipient });
+        return null;
+      },
+    });
+    await expect(client.open({ amount: () => amount })).rejects.toThrow("6 decimal places");
+    amount = "1e3";
+    await expect(client.open({ amount: () => amount })).rejects.toThrow();
+    amount = "0";
+    const onFunded = vi.fn();
+    await expect(client.open({ amount: () => amount, onFunded })).resolves.toBeNull();
+    expect(onFunded).not.toHaveBeenCalled();
+  });
+  it("requires a deferred amount to be resolved before reporting funded continuation", async () => {
+    const client = create_hedge({
+      manifest,
+      adapter: adapter({
+        loanToken: async () => ({ chain_id: 296, address, symbol: "USDC", decimals: 6 }),
+        funding: async () => result,
+      }),
+      modal: async () => ({ credit_id: "loan-1" }),
+    });
+    const onFunded = vi.fn();
+    await expect(client.open({ amount: () => "1", onFunded })).rejects.toMatchObject({
+      code: "INVALID_REQUEST",
+    });
+    expect(onFunded).not.toHaveBeenCalled();
+  });
   it("validates amount-only precision and confirms the requested asset before continuation", async () => {
     const modal = vi.fn(async () => ({ credit_id: "loan-1" }));
     const onFunded = vi.fn();
