@@ -688,7 +688,7 @@
     display: grid;
     grid-template-columns: 200px minmax(0, 1fr);
     gap: 65px;
-    margin-top: 64px;
+    margin-top: 0;
   }
   .guide-nav {
     position: sticky;
@@ -971,7 +971,7 @@
     }
     .guide-layout {
       grid-template-columns: minmax(0, 1fr);
-      margin-top: 35px;
+      margin-top: 0;
     }
     .guide-nav {
       position: static;

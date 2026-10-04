@@ -13,15 +13,6 @@ export const metadata: Metadata = {
 export default function DocsPage() {
   return (
     <main id="main-content" className="shell interior-page">
-      <p className="eyebrow">Build with Hedge</p>
-      <h1>
-        A borrowing flow.
-        <br />
-        <span className="text-accent">Inside your app.</span>
-      </h1>
-      <p className="section-description">
-        Supply liquidity, set your loan terms and embed Use Hedge in your app.
-      </p>
       <div className="guide-layout">
         <GuideNav />
         <div>
