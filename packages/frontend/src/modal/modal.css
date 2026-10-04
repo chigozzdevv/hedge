@@ -1,0 +1,447 @@
+.hedge-modal {
+  --hedge-bg: light-dark(#fff, #161719);
+  --hedge-ink: light-dark(#191b1f, #f1f2f4);
+  --hedge-muted: light-dark(#73777f, #a0a4ad);
+  --hedge-line: light-dark(#e8e9ec, #303238);
+  --hedge-track: light-dark(#bdc5cf, #596371);
+  --hedge-soft: light-dark(#f6f7f9, #212327);
+  --hedge-main: light-dark(#191b1f, #f1f2f4);
+  --hedge-main-text: light-dark(#fff, #191b1f);
+  --hedge-disabled: light-dark(#eceef1, #292c31);
+  --hedge-disabled-text: light-dark(#9398a1, #7b8089);
+  --hedge-base: light-dark(#165df5, #8fb2ff);
+  --hedge-base-text: light-dark(#fff, #182b5a);
+  --hedge-green: light-dark(#25864d, #88cba0);
+  --hedge-error: light-dark(#b33a33, #f5a39c);
+  color-scheme: light dark;
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: 360px;
+  height: fit-content;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  min-height: min(430px, calc(100dvh - 32px));
+  box-sizing: border-box;
+  border: 1px solid var(--hedge-line);
+  border-radius: 20px;
+  padding: 20px;
+  color: var(--hedge-ink);
+  background: var(--hedge-bg);
+  font:
+    14px/1.45 Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  overflow-wrap: anywhere;
+}
+.hedge-modal[open] {
+  display: flex;
+  flex-direction: column;
+}
+.hedge-modal::backdrop {
+  background: #0006;
+}
+.hedge-modal button,
+.hedge-modal select {
+  font: inherit;
+  cursor: pointer;
+}
+.hedge-modal button:disabled {
+  cursor: default;
+}
+.hedge-modal .hedge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.hedge-modal .hedge-brand {
+  font-weight: 500;
+  letter-spacing: -0.25px;
+}
+.hedge-modal .hedge-close {
+  border: 0;
+  background: transparent;
+  color: var(--hedge-muted);
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  font-size: 25px;
+}
+.hedge-modal .hedge-back {
+  border: 0;
+  background: transparent;
+  color: var(--hedge-muted);
+  padding: 0;
+}
+.hedge-modal .hedge-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.hedge-modal .hedge-header,
+.hedge-modal .hedge-footer {
+  flex-shrink: 0;
+}
+.hedge-modal .hedge-title {
+  margin: 0 0 8px;
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1.22;
+  letter-spacing: -0.7px;
+}
+.hedge-modal .hedge-subtitle {
+  color: var(--hedge-muted);
+  margin: 0;
+  font-size: 13px;
+}
+.hedge-modal .hedge-wallets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 28px;
+}
+.hedge-modal .hedge-wallet {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px;
+  border: 1px solid var(--hedge-line);
+  border-radius: 12px;
+}
+.hedge-modal .hedge-network {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  font-weight: 500;
+}
+.hedge-modal .hedge-base {
+  background: var(--hedge-base);
+  color: var(--hedge-base-text);
+}
+.hedge-modal .hedge-hedera {
+  background: var(--hedge-main);
+  color: var(--hedge-main-text);
+}
+.hedge-modal .hedge-wallet-label {
+  flex: 1;
+  min-width: 0;
+}
+.hedge-modal .hedge-wallet-note {
+  font-size: 12px;
+  color: var(--hedge-muted);
+  margin-top: 2px;
+}
+.hedge-modal .hedge-connect {
+  border: 1px solid var(--hedge-line);
+  border-radius: 7px;
+  color: var(--hedge-ink);
+  background: var(--hedge-bg);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 10px;
+  flex: 0 0 auto;
+}
+.hedge-modal .hedge-connect[data-connected="true"] {
+  color: var(--hedge-green);
+  background: transparent;
+  border-color: transparent;
+}
+.hedge-modal .hedge-footer {
+  margin-top: 28px;
+}
+.hedge-modal .hedge-primary {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 13px 12px;
+  color: var(--hedge-main-text);
+  background: var(--hedge-main);
+  font-weight: 500;
+}
+.hedge-modal .hedge-primary:disabled {
+  color: var(--hedge-disabled-text);
+  background: var(--hedge-disabled);
+}
+.hedge-modal .hedge-secondary {
+  display: block;
+  width: 100%;
+  padding: 11px 8px 0;
+  border: 0;
+  color: var(--hedge-muted);
+  background: transparent;
+  font-size: 13px;
+}
+.hedge-modal .hedge-amount {
+  margin: 24px 0 20px;
+}
+.hedge-modal .hedge-amount-label {
+  color: var(--hedge-muted);
+  font-size: 12px;
+}
+.hedge-modal .hedge-number {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 38px;
+  letter-spacing: -1.5px;
+  line-height: 1.25;
+  font-weight: 500;
+  margin: 3px 0;
+  font-variant-numeric: tabular-nums;
+}
+.hedge-modal .hedge-number span {
+  font-size: 20px;
+  letter-spacing: -0.4px;
+}
+.hedge-modal .hedge-terms {
+  margin: 0;
+}
+.hedge-modal .hedge-term {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hedge-line);
+}
+.hedge-modal .hedge-term dt {
+  color: var(--hedge-muted);
+}
+.hedge-modal .hedge-term dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 500;
+}
+.hedge-modal .hedge-note {
+  color: var(--hedge-muted);
+  font-size: 12px;
+  margin: 16px 0 0;
+}
+.hedge-modal .hedge-details {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--hedge-muted);
+}
+.hedge-modal .hedge-details summary {
+  color: var(--hedge-ink);
+  padding: 4px 0;
+  cursor: pointer;
+}
+.hedge-modal .hedge-details p {
+  margin: 8px 0 0;
+}
+.hedge-modal .hedge-details code {
+  font-size: 12px;
+}
+.hedge-modal .hedge-offers {
+  display: block;
+  margin-top: 18px;
+  color: var(--hedge-muted);
+  font-size: 12px;
+}
+.hedge-modal .hedge-offers select {
+  width: 100%;
+  display: block;
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid var(--hedge-line);
+  background: var(--hedge-bg);
+  color: var(--hedge-ink);
+  border-radius: 8px;
+}
+.hedge-modal .hedge-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.hedge-modal .hedge-step {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-height: 44px;
+}
+.hedge-modal .hedge-step-receipt {
+  margin-top: 3px;
+  color: var(--hedge-muted);
+}
+.hedge-modal .hedge-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 11.5px;
+  top: 25px;
+  bottom: -22px;
+  width: 2px;
+  background: var(--hedge-track);
+}
+.hedge-modal .hedge-step[data-state="done"]::after {
+  background: var(--hedge-green);
+}
+.hedge-modal .hedge-step-mark {
+  position: relative;
+  z-index: 1;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: var(--hedge-soft);
+  color: var(--hedge-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 25px;
+  font-size: 12px;
+}
+.hedge-modal .hedge-step[data-state="active"] .hedge-step-mark {
+  background: var(--hedge-main);
+  color: var(--hedge-main-text);
+}
+.hedge-modal .hedge-step[data-state="done"] .hedge-step-mark {
+  color: var(--hedge-green);
+}
+.hedge-modal .hedge-step-name {
+  font-weight: 500;
+}
+.hedge-modal .hedge-step[data-state="pending"] .hedge-step-name {
+  color: var(--hedge-muted);
+}
+.hedge-modal .hedge-step-note {
+  color: var(--hedge-muted);
+  font-size: 12px;
+  margin-top: 3px;
+}
+.hedge-modal .hedge-success {
+  color: var(--hedge-green);
+  font-size: 12px;
+  margin-top: 20px;
+}
+.hedge-modal .hedge-payment-note {
+  margin: 18px 0 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--hedge-soft);
+  color: var(--hedge-muted);
+  font-size: 12px;
+}
+.hedge-modal .hedge-error {
+  color: var(--hedge-error);
+  font-size: 12px;
+  margin: 18px 0 0;
+}
+@media (max-height: 600px) {
+  .hedge-modal .hedge-header {
+    margin-bottom: 18px;
+  }
+  .hedge-modal .hedge-amount {
+    margin: 18px 0 14px;
+  }
+  .hedge-modal .hedge-footer {
+    margin-top: 20px;
+  }
+  .hedge-modal .hedge-note {
+    margin-top: 12px;
+  }
+  .hedge-modal .hedge-details {
+    margin-top: 10px;
+  }
+}
+@media (max-width: 360px) {
+  .hedge-modal {
+    padding: 18px;
+  }
+  .hedge-modal .hedge-wallet {
+    gap: 9px;
+    padding: 13px 10px;
+  }
+}
+@media (pointer: coarse) {
+  .hedge-modal .hedge-connect,
+  .hedge-modal .hedge-close,
+  .hedge-modal .hedge-back,
+  .hedge-modal .hedge-secondary {
+    min-height: 44px;
+  }
+  .hedge-modal .hedge-close {
+    width: 44px;
+  }
+  .hedge-modal .hedge-details summary {
+    min-height: 44px;
+    box-sizing: border-box;
+    padding-top: 12px;
+  }
+  .hedge-modal .hedge-offers select {
+    font-size: 16px;
+  }
+}
+
+.hedge-launch {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  max-width: 100%;
+}
+.hedge-launch .hedge-launch-button {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 16px;
+  border: 1px solid light-dark(#e5e7eb, #343740);
+  border-radius: 10px;
+  background: light-dark(#fff, #181a1f);
+  color: light-dark(#191b1f, #f1f2f4);
+  cursor: pointer;
+}
+.hedge-launch .hedge-launch-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.hedge-launch .hedge-launch-button:focus-visible {
+  outline: 2px solid #5573e8;
+  outline-offset: 3px;
+}
+.hedge-launch .hedge-launch-error {
+  font-size: 12px;
+  line-height: 1.5;
+  color: light-dark(#a92a35, #f2a3ac);
+  overflow-wrap: anywhere;
+}
+
+.hedge-repayment-source {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  background: var(--hedge-soft);
+}
+.hedge-repayment-source button {
+  flex: 1;
+  padding: 9px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--hedge-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.hedge-repayment-source button[aria-pressed="true"] {
+  background: var(--hedge-main);
+  color: var(--hedge-main-text);
+}
+.hedge-repayment-source button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

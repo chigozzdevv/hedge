@@ -1,0 +1,20 @@
+.hedge-transaction-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.hedge-transaction-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.hedge-transaction-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+  border-radius: 3px;
+}
