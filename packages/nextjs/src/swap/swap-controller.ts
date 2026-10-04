@@ -31,6 +31,7 @@ export class SwapController {
   private snapshot: SwapSnapshot;
   private listeners = new Set<() => void>();
   private estimateVersion = 0;
+  private walletVersion = 0;
   constructor(readonly services?: SwapServices) {
     const assets = services?.assets;
     if (
@@ -118,14 +119,63 @@ export class SwapController {
       throw new Error("Connect a wallet on the selected Hedera network.");
     return Object.freeze({ ...value });
   }
-  private async readWallet() {
+  private async readWallet(isCurrent: () => boolean = () => true) {
     const wallet = this.wallet(await this.provider().wallet());
-    const balance = await this.provider().balance(this.asset(this.snapshot.sell), wallet);
+    const asset = this.asset(this.snapshot.sell);
+    const balance = await this.provider().balance(asset, wallet);
     if (typeof balance !== "bigint" || balance < 0n)
       throw new Error("Unable to read your balance.");
-    this.update({ wallet, balance });
+    if (
+      asset.id !== this.snapshot.sell ||
+      !sameWallet(wallet, this.wallet(await this.provider().wallet()))
+    )
+      throw new Error("Wallet changed. Refresh your balance.");
+    if (isCurrent()) this.update({ wallet, balance });
     return wallet;
   }
+  refreshWallet = async () => {
+    const version = ++this.walletVersion;
+    this.update({
+      wallet: undefined,
+      balance: undefined,
+      ...(this.snapshot.transactionId ? {} : { quote: undefined }),
+    });
+    try {
+      const wallet = await this.provider().wallet();
+      if (version !== this.walletVersion || !wallet) return;
+      await this.readWallet(() => version === this.walletVersion);
+    } catch (error) {
+      if (version === this.walletVersion && !(error instanceof WalletDisconnectedError))
+        this.update({
+          error: error instanceof Error ? error.message : "Could not refresh your wallet",
+        });
+    }
+  };
+  validAmount(): boolean {
+    try {
+      if (this.snapshot.transactionId) return false;
+      parseAmount(this.snapshot.amount, this.asset(this.snapshot.sell).decimals);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  loanAmount = async (expected: WalletIdentity): Promise<string> => {
+    const { amount, sell } = this.snapshot;
+    if (!this.validAmount() || sell !== "usdc") throw new Error("Enter a valid USDC swap amount.");
+    const wallet = await this.readWallet();
+    if (!sameWallet(expected, wallet))
+      throw new Error("Reconnect the Hedera wallet for your swap.");
+    if (
+      this.snapshot.amount !== amount ||
+      this.snapshot.sell !== sell ||
+      this.snapshot.transactionId
+    )
+      throw new Error("Your swap changed. Review its amount again.");
+    const shortfall = this.shortfall();
+    if (shortfall === undefined) throw new Error("Refresh your wallet balance before borrowing.");
+    return shortfall;
+  };
   initialize = () =>
     this.run(async () => {
       if (!this.services) return;
@@ -367,7 +417,7 @@ export class SwapController {
       return undefined;
     try {
       const missing = parseAmount(this.snapshot.amount, asset.decimals) - this.snapshot.balance;
-      return missing > 0n ? formatUnits(missing, asset.decimals) : undefined;
+      return missing > 0n ? formatUnits(missing, asset.decimals) : "0";
     } catch {
       return undefined;
     }

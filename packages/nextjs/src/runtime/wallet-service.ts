@@ -61,6 +61,34 @@ export async function runtimeRequest<T>(
 /** EVM wallets sign their own transactions. Local signing is an explicit test-only option. */
 export class RuntimeWallet implements EvmWallet {
   private selected = new Map<Chain, WalletIdentity>();
+  private listeners = new Set<() => void>();
+  private events?: EIP1193Provider & {
+    on?(event: string, listener: () => void): void;
+    removeListener?(event: string, listener: () => void): void;
+  };
+  private changed = () => {
+    this.selected.clear();
+    this.notify();
+  };
+  private notify() {
+    for (const listener of this.listeners) listener();
+  }
+  subscribe = (listener: () => void) => {
+    this.listeners.add(listener);
+    if (this.listeners.size === 1 && this.mode === "injected") {
+      this.events = (window as Window & { ethereum?: RuntimeWallet["events"] }).ethereum;
+      this.events?.on?.("accountsChanged", this.changed);
+      this.events?.on?.("disconnect", this.changed);
+    }
+    return () => {
+      this.listeners.delete(listener);
+      if (!this.listeners.size) {
+        this.events?.removeListener?.("accountsChanged", this.changed);
+        this.events?.removeListener?.("disconnect", this.changed);
+        this.events = undefined;
+      }
+    };
+  };
   constructor(
     readonly profile: RuntimeProfile,
     private readonly reader: EvmHedgeReader,
@@ -110,8 +138,9 @@ export class RuntimeWallet implements EvmWallet {
     if (!selected) return null;
     if (this.mode === "injected") {
       const accounts = await this.provider().request({ method: "eth_accounts" });
-      if (!accounts.some((address) => sameAddress(address, selected.address))) {
+      if (!accounts[0] || !sameAddress(accounts[0], selected.address)) {
         this.selected.delete(chain);
+        this.notify();
         return null;
       }
     }
@@ -134,6 +163,7 @@ export class RuntimeWallet implements EvmWallet {
         : {}),
     };
     this.selected.set(chain, wallet);
+    this.notify();
     return wallet;
   }
   async signMessage(chain: Chain, message: string): Promise<Hex> {

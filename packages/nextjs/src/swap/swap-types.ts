@@ -50,6 +50,7 @@ export interface SwapServices {
   /** Restrict controls to routes actually supported by the configured DEX service. */
   readonly routes?: readonly { sell: string; buy: string }[];
   wallet(): Promise<WalletIdentity | null>;
+  subscribeWallet?(listener: () => void): () => void;
   connect(): Promise<WalletIdentity>;
   /** Spendable balance: reserve native gas where needed. */
   balance(asset: SwapAsset, wallet: WalletIdentity): Promise<bigint>;

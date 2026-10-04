@@ -25,6 +25,13 @@ export function SwapForm({
   useEffect(() => {
     void controller.initialize();
   }, [controller]);
+  useEffect(
+    () =>
+      services.subscribeWallet?.(() => {
+        void controller.refreshWallet();
+      }),
+    [controller, services],
+  );
   useEffect(() => {
     if (!model.quote && !model.estimate) return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -196,7 +203,13 @@ export function SwapForm({
           {model.sell === "usdc" && (
             <UseHedge
               className="swap-hedge-button"
-              amount={shortfall ?? "0"}
+              amount={
+                controller.validAmount()
+                  ? shortfall === "0"
+                    ? "0"
+                    : controller.loanAmount
+                  : undefined
+              }
               continueLabel="Continue to swap"
               onContinue={controller.afterFunding}
               disabled={model.busy || (!!model.transactionId && !model.receipt)}

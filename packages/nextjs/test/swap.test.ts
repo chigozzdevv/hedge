@@ -45,6 +45,40 @@ function fixture() {
   return { controller, services };
 }
 describe("reference swap flow", () => {
+  it("keeps unknown balance separate from zero shortfall and resolves the app amount after connection", async () => {
+    const { controller, services } = fixture();
+    controller.setAmount("5");
+    expect(controller.validAmount()).toBe(true);
+    expect(controller.shortfall()).toBeUndefined();
+    vi.mocked(services.balance).mockResolvedValue(2_000_000n);
+    expect(await controller.loanAmount(wallet)).toBe("3");
+    expect(controller.getSnapshot().balance).toBe(2_000_000n);
+    vi.mocked(services.balance).mockResolvedValue(5_000_000n);
+    expect(await controller.loanAmount(wallet)).toBe("0");
+    expect(services.quote).not.toHaveBeenCalled();
+    expect(services.execute).not.toHaveBeenCalled();
+    for (const amount of ["", "0", "1e3", "0.0000001"]) {
+      controller.setAmount(amount);
+      expect(controller.validAmount()).toBe(false);
+    }
+  });
+  it("clears stale balance and unsigned quotes when the shared wallet changes or disconnects", async () => {
+    const { controller, services } = fixture();
+    await controller.review();
+    vi.mocked(services.wallet).mockResolvedValue(null);
+    await controller.refreshWallet();
+    expect(controller.getSnapshot()).toMatchObject({
+      wallet: undefined,
+      balance: undefined,
+      quote: undefined,
+    });
+    expect(controller.shortfall()).toBeUndefined();
+    vi.mocked(services.wallet).mockResolvedValue({ ...wallet, address: `0x${"3".repeat(40)}` });
+    vi.mocked(services.balance).mockResolvedValue(0n);
+    await controller.refreshWallet();
+    await expect(controller.loanAmount(wallet)).rejects.toThrow("Reconnect");
+    expect(services.execute).not.toHaveBeenCalled();
+  });
   it("prices an amount without connecting a wallet or preparing a transaction", async () => {
     const { controller, services } = fixture();
     vi.mocked(services.wallet).mockResolvedValue(null);
@@ -295,7 +329,7 @@ describe("reference swap flow", () => {
       funding: { token: address, amount: 800_000_000n, recipient: wallet },
       transaction: { chain: "hedera", hash: "fixture-payout", confirmed: true },
     });
-    expect(controller.shortfall()).toBeUndefined();
+    expect(controller.shortfall()).toBe("0");
     expect(controller.getSnapshot().quote).toBeDefined();
     expect(services.execute).not.toHaveBeenCalled();
     await controller.confirm();

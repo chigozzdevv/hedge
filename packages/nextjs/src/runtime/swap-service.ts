@@ -113,6 +113,7 @@ export function createSwapServices(
       );
     },
     wallet: () => wallet.wallet("hedera"),
+    subscribeWallet: wallet.subscribe ? (listener) => wallet.subscribe!(listener) : undefined,
     connect: () => wallet.connect("hedera"),
     async balance(asset, identity) {
       if (asset.id === "usdc")
