@@ -13,6 +13,7 @@ import { HedgeRuntime } from "../src/provider/hedge-runtime";
 import { setupHedge } from "../src/provider/hedge-session";
 import { HedgeContext, HedgeProvider } from "../src/provider/hedge-provider";
 import { UseHedge } from "../src/provider/use-hedge";
+import { browserJournal } from "../src/provider/browser-journal";
 
 import { deploymentConfigSchema } from "@hedge/schema";
 
@@ -49,7 +50,12 @@ function deferred<T>() {
 }
 async function fixture() {
   vi.spyOn(EvmHedgeReader.prototype, "verifyDeployment").mockResolvedValue();
-  vi.stubGlobal("localStorage", { getItem: () => null, setItem: vi.fn() });
+  const values = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
+  });
   const wallet = {
     connect: vi.fn(),
     wallet: vi.fn<EvmWallet["wallet"]>(async () => null),
@@ -61,7 +67,8 @@ async function fixture() {
   const recover = vi.spyOn(session.adapter, "outstandingLoans").mockResolvedValue([]);
   const setup = vi.fn(async () => session);
   const runtime = new HedgeRuntime({ config, wallet }, setup);
-  return { runtime, session, open, readSummary, recover, setup, wallet };
+  const saved = browserJournal(config.deployment.instance_id, config.operator);
+  return { runtime, session, open, readSummary, recover, setup, wallet, saved };
 }
 afterEach(() => {
   vi.restoreAllMocks();
@@ -190,20 +197,78 @@ describe("declarative Hedge launcher", () => {
     });
     expect(f.open).toHaveBeenCalledOnce();
   });
-  it("opens a saved settled receipt for zero shortfall, but allows explicit new funding after settlement", async () => {
+  it.each(["returned", "settled"] as const)(
+    "starts a new loan after repayment and %s collateral, including after a reload",
+    async (collateral_state) => {
+      const f = await fixture();
+      f.saved.journal.checkpoint!({
+        instance_id: config.deployment.instance_id,
+        credit_id: id,
+        stage: "repaid",
+      });
+      f.session.modal.remember({ instance_id: config.deployment.instance_id, credit_id: id });
+      f.readSummary.mockResolvedValue({
+        ...summary,
+        state: "repaid",
+        amount_due: 0n,
+        collateral_state,
+      });
+      await f.runtime.continue({ amount: "5" });
+      expect(f.open.mock.calls[0][0]).toHaveProperty("amount", "5");
+      expect(f.open.mock.calls[0][0]).not.toHaveProperty("credit_id");
+      expect(f.session.modal.getSnapshot().creditId).toBeUndefined();
+      expect(f.saved.restore()).toBeUndefined();
+      const reloaded = await setupHedge({ config, wallet: f.wallet });
+      expect(reloaded.modal.getSnapshot().creditId).toBeUndefined();
+    },
+  );
+  it("does not reopen a completed receipt or request a zero-value loan when there is no shortfall", async () => {
     const f = await fixture();
     f.session.modal.remember({ instance_id: config.deployment.instance_id, credit_id: id });
     f.readSummary.mockResolvedValue({
       ...summary,
       state: "repaid",
       amount_due: 0n,
-      collateral_state: "returned",
+      collateral_state: "settled",
     });
-    await f.runtime.continue({ amount: "0" });
-    expect(f.open.mock.calls[0][0]).toHaveProperty("credit_id", id);
-    await f.runtime.continue({ amount: "0.1" });
-    expect(f.open.mock.calls[1][0]).toHaveProperty("amount", "0.1");
-    expect(f.open.mock.calls[1][0]).not.toHaveProperty("credit_id");
+    await expect(f.runtime.continue({ amount: "0" })).resolves.toBeNull();
+    expect(f.open).not.toHaveBeenCalled();
+    await f.runtime.continue({ amount: "5" });
+    expect(f.open).toHaveBeenCalledWith(expect.objectContaining({ amount: "5" }));
+  });
+  it.each([
+    { state: "settling", collateral_state: "settled" },
+    { state: "repaid", collateral_state: "return_authorized" },
+  ] as const)("keeps $state/$collateral_state loans resumable", async (pending) => {
+    const f = await fixture();
+    f.saved.journal.checkpoint!({
+      instance_id: config.deployment.instance_id,
+      credit_id: id,
+      stage: "repayment",
+    });
+    f.session.modal.remember({ instance_id: config.deployment.instance_id, credit_id: id });
+    f.readSummary.mockResolvedValue({ ...summary, ...pending });
+    await f.runtime.continue({ amount: "5" });
+    expect(f.open).toHaveBeenCalledWith(expect.objectContaining({ credit_id: id }));
+    expect(f.saved.restore()?.credit_id).toBe(id);
+  });
+  it.each([
+    { state: "repaid", collateral_state: "settled", label: "Use Hedge" },
+    { state: "settling", collateral_state: "settled", label: "Manage loan" },
+  ] as const)("shows $label for $state/$collateral_state", async ({ label, ...loan }) => {
+    const f = await fixture();
+    await f.runtime.ready();
+    vi.spyOn(f.session.modal, "getSnapshot").mockReturnValue({
+      ...f.session.modal.getSnapshot(),
+      summary: { ...summary, ...loan },
+    });
+    const html = renderToString(
+      createElement(HedgeContext.Provider, {
+        value: f.runtime,
+        children: createElement(UseHedge, { amount: "5" }),
+      }),
+    );
+    expect(html).toContain(label);
   });
   it("supports React effect cleanup/restart without accepting a stale setup", async () => {
     const f = await fixture();

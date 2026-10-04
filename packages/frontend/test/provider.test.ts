@@ -176,6 +176,27 @@ describe("provider setup and recovery", () => {
 });
 
 describe("operator recovery separation", () => {
+  it("clears only the completed loan checkpoint and preserves receipts and newer loans", () => {
+    const saved = browserJournal(config.deployment.instance_id, config.operator);
+    const transaction = `0x${"2".repeat(64)}` as const;
+    saved.journal.checkpoint!({
+      instance_id: config.deployment.instance_id,
+      credit_id: loanId,
+      stage: "repaid",
+    });
+    saved.journal.set(`${loanId}-settle`, transaction);
+    saved.forget(loanId);
+    expect(saved.restore()).toBeUndefined();
+    expect(saved.journal.get(`${loanId}-settle`)).toBe(transaction);
+    const nextId = `0x${"3".repeat(64)}`;
+    saved.journal.checkpoint!({
+      instance_id: config.deployment.instance_id,
+      credit_id: nextId,
+      stage: "accepted",
+    });
+    saved.forget(loanId);
+    expect(saved.restore()?.credit_id).toBe(nextId);
+  });
   it("keeps two app operators' checkpoints and transaction hashes separate on shared contracts", () => {
     const other = `0x${"9".repeat(40)}`;
     const first = browserJournal(config.deployment.instance_id, config.operator);

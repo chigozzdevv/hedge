@@ -2,6 +2,7 @@
 import { useContext, useId, useSyncExternalStore, type ReactNode } from "react";
 import { HedgeContext } from "./hedge-provider";
 import type { HedgeAction } from "./hedge-runtime";
+import { isLoanComplete } from "../modal/loan-state";
 import "../modal/modal.css";
 
 export interface UseHedgeProps extends HedgeAction {
@@ -16,10 +17,7 @@ export function UseHedge({ disabled, className, children, ...action }: UseHedgeP
   const state = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot, runtime.getSnapshot);
   const errorId = useId();
   const summary = state.session?.modal.getSnapshot().summary;
-  const outstanding =
-    summary &&
-    !["returned", "recovered"].includes(summary.collateral_state) &&
-    !(summary.state === "cancelled" && summary.collateral_state === "unlocked");
+  const outstanding = summary && !isLoanComplete(summary);
   return (
     <span className="hedge-launch">
       <button

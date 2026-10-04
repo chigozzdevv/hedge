@@ -1,5 +1,6 @@
 import { HedgeError, type FundingResult, type OpenOptions } from "@hedge/sdk";
 import { setupHedge, type HedgeSetup, type HedgeSession } from "./hedge-session";
+import { isLoanComplete } from "../modal/loan-state";
 
 export interface HedgeState {
   session?: HedgeSession;
@@ -79,7 +80,7 @@ export class HedgeRuntime {
     this.pending = pending;
     return pending;
   }
-  private async exclusive(options: (session: HedgeSession) => Promise<OpenOptions>) {
+  private async exclusive(options: (session: HedgeSession) => Promise<OpenOptions | null>) {
     if (this.operating || this.state.session?.modal.getSnapshot().busy)
       throw new HedgeError("MODAL_BUSY", "An existing loan operation is still in progress");
     this.operating = true;
@@ -90,6 +91,7 @@ export class HedgeRuntime {
       const request = await options(session);
       if (!this.active || generation !== this.generation)
         throw new HedgeError("PROVIDER_CLOSED", "Hedge provider is no longer mounted");
+      if (!request) return null;
       const result = await session.client.open({ ...request, onFunded: undefined });
       if (result && this.active && generation === this.generation) await request.onFunded?.(result);
       return result;
@@ -110,11 +112,10 @@ export class HedgeRuntime {
       let resume = saved;
       if (saved) {
         const summary = await session.client.credit(saved).summary();
-        const settled =
-          (summary.state === "repaid" && summary.collateral_state === "returned") ||
-          (summary.state === "cancelled" &&
-            ["returned", "unlocked"].includes(summary.collateral_state));
-        if (settled && /[1-9]/.test(amount)) resume = undefined;
+        if (isLoanComplete(summary)) {
+          session.modal.forgetCompleted(summary);
+          resume = undefined;
+        }
       }
       if (!resume) {
         const wallet = await session.adapter.options.wallet.wallet("hedera");
@@ -128,6 +129,7 @@ export class HedgeRuntime {
           resume = ids[0];
         }
       }
+      if (!resume && /^0+(?:\.0+)?$/.test(amount)) return null;
       return {
         ...(resume ? { credit_id: resume } : { amount }),
         context: { title: "Use Hedge", continueLabel },

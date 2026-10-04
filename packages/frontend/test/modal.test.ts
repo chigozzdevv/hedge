@@ -319,6 +319,47 @@ describe("Use Hedge modal chain boundaries", () => {
     f.modal.close();
     await expect(opening.promise).resolves.toBeNull();
   });
+  it.each(["returned", "settled"] as const)(
+    "Done forgets a repaid loan with %s collateral and opens new borrowing",
+    async (collateral_state) => {
+      const f = fixture();
+      const complete = vi.fn();
+      f.services.onComplete = complete;
+      f.modal.remember({ instance_id: "fixture", credit_id: "loan-1" });
+      f.setSummary({ ...funded, state: "repaid", amount_due: 0n, collateral_state });
+      const opening = await f.open({ credit_id: "loan-1" });
+      expect(f.modal.getSnapshot().screen).toBe("complete");
+      f.modal.close();
+      await expect(opening.promise).resolves.toBeNull();
+      expect(complete).toHaveBeenCalledExactlyOnceWith("loan-1");
+      expect(f.modal.getSnapshot().creditId).toBeUndefined();
+      expect(f.modal.getSnapshot().summary).toBeUndefined();
+      const next = await f.open({ amount: "5" });
+      expect(f.modal.getSnapshot().screen).toBe("connect");
+      expect(f.modal.getSnapshot().creditId).toBeUndefined();
+      expect(f.accept).not.toHaveBeenCalled();
+      f.modal.close();
+      await next.promise;
+    },
+  );
+  it("closing while collateral repayment awaits Hedera keeps the loan for recovery", async () => {
+    const f = fixture();
+    const complete = vi.fn();
+    f.services.onComplete = complete;
+    f.modal.remember({ instance_id: "fixture", credit_id: "loan-1" });
+    f.setSummary({ ...funded, state: "settling", collateral_state: "settled" });
+    const opening = await f.open({ credit_id: "loan-1" });
+    expect(f.modal.getSnapshot().screen).toBe("settle");
+    f.modal.close();
+    await opening.promise;
+    expect(complete).not.toHaveBeenCalled();
+    expect(f.modal.getSnapshot().creditId).toBe("loan-1");
+    const next = await f.open({ amount: "5" });
+    expect(f.modal.getSnapshot().screen).toBe("settle");
+    expect(f.modal.getSnapshot().creditId).toBe("loan-1");
+    f.modal.close();
+    await next.promise;
+  });
   it("gates review on both wallets and hands off only after rereading confirmed funding", async () => {
     const f = fixture(),
       opening = await f.open();

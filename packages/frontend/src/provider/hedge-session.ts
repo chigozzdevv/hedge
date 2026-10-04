@@ -32,7 +32,10 @@ export async function setupHedge(options: HedgeSetup, signal?: AbortSignal) {
     resolveAccount: createAccountResolver(config.mirror_url),
   });
   const wallet = typeof options.wallet === "function" ? options.wallet(reader) : options.wallet;
-  const { journal, restore } = browserJournal(config.deployment.instance_id, config.operator);
+  const { journal, restore, forget } = browserJournal(
+    config.deployment.instance_id,
+    config.operator,
+  );
   const post = async (path: string, body: unknown): Promise<unknown> => {
     const send = (value: unknown) =>
       request(`${config.operator_url.replace(/\/$/, "")}/${path}`, {
@@ -110,7 +113,7 @@ export async function setupHedge(options: HedgeSetup, signal?: AbortSignal) {
       await post("relay", { credit_id });
     },
   });
-  const modal = createHedgeModal(adapter);
+  const modal = createHedgeModal(adapter, forget);
   const client = create_hedge({ manifest: config.deployment, adapter, modal: modal.renderer });
   await client.ready();
   signal?.throwIfAborted();

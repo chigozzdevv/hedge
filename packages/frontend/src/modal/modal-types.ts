@@ -24,6 +24,7 @@ export interface ModalServices {
   loanToken?(): Promise<TokenMetadata>;
   outstandingLoans?(borrower: string): Promise<readonly string[]>;
   onCheckpoint?: (checkpoint: Checkpoint) => void;
+  onComplete?: (creditId: string) => void;
 }
 export type Screen =
   | "connect"

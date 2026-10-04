@@ -11,6 +11,7 @@ import {
   type TokenMetadata,
   type EvmHedgeAdapter,
   type FundingRequest,
+  type CreditSummary,
   parseAmount,
 } from "@hedge/sdk";
 import {
@@ -23,6 +24,7 @@ import {
   transactionSchema,
 } from "@hedge/schema";
 import type { ModalServices, ModalSnapshot, Screen, LoanTransactions } from "./modal-types";
+import { isLoanComplete } from "./loan-state";
 
 const initial = (): ModalSnapshot => ({ open: false, screen: "connect", busy: false, offers: [] });
 function errorMessage(error: unknown): string {
@@ -54,6 +56,24 @@ export class HedgeModalController {
       idSchema.parse(checkpoint.credit_id),
     );
     this.update({ creditId: checkpoint.credit_id });
+  }
+  forgetCompleted(summary: CreditSummary) {
+    if (!isLoanComplete(summary) || this.snapshot.creditId !== summary.credit_id) return;
+    this.services.onComplete?.(summary.credit_id);
+    if (this.knownLoans.get(summary.instance_id) === summary.credit_id)
+      this.knownLoans.delete(summary.instance_id);
+    this.update({
+      creditId: undefined,
+      summary: undefined,
+      offer: undefined,
+      funding: undefined,
+      checkpoint: undefined,
+      transactions: undefined,
+      repaymentSource: undefined,
+      error: undefined,
+      offers: [],
+      screen: "connect",
+    });
   }
   getSnapshot = (): ModalSnapshot => this.snapshot;
   subscribe = (listener: () => void) => {
@@ -383,14 +403,8 @@ export class HedgeModalController {
       if (creditId) {
         if (request.funding || request.amount !== undefined) {
           const current = await client.credit(creditId).summary();
-          if (
-            (current.state === "repaid" &&
-              ["returned", "settled"].includes(current.collateral_state)) ||
-            (current.state === "cancelled" &&
-              ["returned", "unlocked"].includes(current.collateral_state))
-          ) {
-            this.knownLoans.delete(client.manifest.instance_id);
-            this.update({ creditId: undefined });
+          if (isLoanComplete(current)) {
+            this.forgetCompleted(current);
             return;
           }
         }
@@ -401,6 +415,13 @@ export class HedgeModalController {
     return selection;
   };
   close = () => {
+    if (this.snapshot.summary && isLoanComplete(this.snapshot.summary)) {
+      try {
+        this.forgetCompleted(this.snapshot.summary);
+      } catch (error) {
+        this.update({ error: errorMessage(error) });
+      }
+    }
     this.update({ open: false });
     this.resolve?.(null);
     this.resolve = undefined;
@@ -646,7 +667,10 @@ export class HedgeModalController {
 }
 
 /** Reuse the SDK adapter's wallets, verified reader and public checkpoint journal. */
-export const createHedgeModal = (adapter: EvmHedgeAdapter) =>
+export const createHedgeModal = (
+  adapter: EvmHedgeAdapter,
+  onComplete?: ModalServices["onComplete"],
+) =>
   new HedgeModalController({
     connect: (chain) => adapter.options.wallet.connect(chain),
     wallet: (chain) => adapter.options.wallet.wallet(chain),
@@ -655,4 +679,5 @@ export const createHedgeModal = (adapter: EvmHedgeAdapter) =>
     loanToken: () => adapter.loanToken(),
     outstandingLoans: (borrower) => adapter.outstandingLoans(borrower),
     onCheckpoint: (checkpoint) => adapter.options.journal.checkpoint?.(checkpoint),
+    onComplete,
   });

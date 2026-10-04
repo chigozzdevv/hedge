@@ -33,5 +33,8 @@ export function browserJournal(
       );
     }
   };
-  return { journal, restore };
+  const forget = (creditId: string) => {
+    if (restore()?.credit_id === creditId) storage.removeItem(`${prefix}loan`);
+  };
+  return { journal, restore, forget };
 }
