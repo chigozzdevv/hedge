@@ -5,11 +5,11 @@ import { CopyButton } from "./copy-button";
 export async function CodeBlock({
   code,
   label = "Terminal",
-  language = "text",
+  language = "bash",
 }: {
   code: string;
   label?: string;
-  language?: "text" | "tsx";
+  language?: "text" | "bash" | "dotenv" | "json" | "tsx";
 }) {
   const highlighted =
     language === "text"
@@ -22,8 +22,8 @@ export async function CodeBlock({
         <span className="text-xs text-muted">{label}</span>
         <CopyButton code={code} label={label} />
       </div>
-      <pre>
-        <code>
+      <pre tabIndex={0} aria-label={`${label} code`}>
+        <code className={`language-${language}`}>
           {highlighted
             ? highlighted.tokens.map((line, lineIndex) => (
                 <Fragment key={lineIndex}>

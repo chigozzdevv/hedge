@@ -339,7 +339,7 @@ npm pack --workspace @hedge/schema --workspace @hedge/bindings \
   --workspace @hedge/sdk --workspace @hedge/frontend --pack-destination /tmp/hedge-packages
 ```
 
-From your app, replace `/path/to/hedge`:
+From your app:
 
 ```sh
 npm install /tmp/hedge-packages/hedge-{schema,bindings,sdk,frontend}-0.1.0.tgz

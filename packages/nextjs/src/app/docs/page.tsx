@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TransactionLink } from "@hedge/frontend";
 import { CodeBlock } from "@/components/code-block";
+import { GuideNav } from "@/components/guide-nav";
 import { integrationCode } from "@/lib/site";
+import { testRuns } from "@/lib/docs-evidence";
 
 export const metadata: Metadata = {
   title: "Documentation",
@@ -22,13 +23,7 @@ export default function DocsPage() {
         Supply liquidity, set your loan terms and embed Use Hedge in your app.
       </p>
       <div className="guide-layout">
-        <nav className="guide-nav" aria-label="Documentation sections">
-          <a href="#overview">Overview</a>
-          <a href="#setup">Setup</a>
-          <a href="#integration">React integration</a>
-          <a href="#protocol">Protocol rules</a>
-          <a href="#evidence">Test evidence</a>
-        </nav>
+        <GuideNav />
         <div>
           <section className="guide-section" id="overview">
             <h2>How the pieces fit together</h2>
@@ -45,66 +40,140 @@ export default function DocsPage() {
           </section>
           <section className="guide-section" id="setup">
             <h2>Set up your platform</h2>
-            <p>
-              From the Hedge repository, install with Node 20.19+, 22.13+, or 24+, npm, Foundry,
-              Python 3 and curl.
-            </p>
+            <p>Requires Node 20.19+, 22.13+, or 24+, npm, Git, Foundry, Python 3 and curl.</p>
+            <h3>1. Create your app</h3>
+            <CodeBlock code="npm create scaffold-hbar@latest -- --template chigozzdevv/hedge" />
+            <p>Choose your project name and npm, then enter the generated folder.</p>
+            <h3>2. Install and initialize wallets</h3>
             <CodeBlock
-              code={`npm ci\nnpm run build:contracts\nnpm run codegen\nnpm run build:packages\ncp .env.example .env`}
+              code={`npm ci
+npm run build:contracts
+npm run codegen
+npm run build:packages
+cp .env.example .env
+cd packages/nextjs
+npm run hedge -- init`}
             />
             <p>
-              The root <code>.env</code> is shared by the CLI, server and website. Keep it when
-              upgrading. Set your database connection and enable the testnet service:
+              Keep an existing root <code>.env</code> when upgrading. Run Hedge commands from your
+              app folder, <code>packages/nextjs</code> here. Init creates or reuses the
+              operator/relay wallets, prints their addresses and fills the operator address on first
+              initialization.
+            </p>
+            <h3>3. Configure your platform</h3>
+            <p>
+              The root <code>.env</code> is shared by the CLI, server and website. Set your database
+              connection and enable the testnet service:
             </p>
             <CodeBlock
               label=".env"
-              code={`DATABASE_DRIVER=postgres\nDATABASE_URL=postgresql://hedge:CHANGE_ME@127.0.0.1:5432/hedge\nHEDGE_LOCAL_TESTNET=1`}
+              language="dotenv"
+              code={`DATABASE_DRIVER=postgres
+DATABASE_URL=postgresql://hedge:CHANGE_ME@127.0.0.1:5432/hedge
+HEDGE_LOCAL_TESTNET=1`}
             />
             <p>
-              Use your PostgreSQL or MongoDB connection URL. Transaction records and liquidity
-              receipts go to your database. The supplied ports are 3003 for the server and 3002 for
-              the app; startup derives the local URLs and browser origin.
+              For MongoDB, use <code>DATABASE_DRIVER=mongodb</code> and your MongoDB connection URL;
+              multi-record transactions require a replica set. Transaction records, receipts,
+              process state and logs go to your database. The supplied ports are 3003 for the server
+              and 3002 for the app; startup derives the local URLs and browser origin.
             </p>
             <p>
-              Configure loan rules in <code>packages/nextjs/.hedge/operator.json</code>. Leave{" "}
-              <code>eligible_borrowers</code> empty to allow everyone, or add addresses to restrict
-              eligibility. The supplied terms allow up to 10 USDC, require 2× Base USDC collateral,
-              charge 2% and set a 30-day term. Borrowers connect and sign with their own wallets.
+              Your app’s <code>.hedge</code> contains only <code>wallets.json</code>,{" "}
+              <code>operator.json</code> and <code>hedge.config.json</code>. The wallets file
+              contains unencrypted private keys; keep it private with permissions <code>0600</code>.
+              It is ignored by Git and never served to the browser.
             </p>
-            <h3>Prepare your operator</h3>
-            <CodeBlock code={`cd packages/nextjs\nnpm run hedge -- init`} />
-            <p>
-              Init generates or reuses operator/relay wallets and prints their addresses. Setup
-              files stay in <code>packages/nextjs/.hedge</code>. Fund the operator on Hedera Testnet
-              with HBAR and the configured USDC token <code>0.0.5449</code>; fund the Base Sepolia
-              wallet with ETH. The borrower also needs Hedera HBAR and the full repayment amount.
-            </p>
-            <p>
-              The configured Hedera token differs from Circle’s Hedera test token. Follow the root
-              repository README for wallet funding, retained deployment gas buffers and instance
-              details.
-            </p>
-            <CodeBlock code={`npm run hedge -- liquidity deposit 5\nnpm run hedge -- start`} />
-            <div className="guide-note">
+            <details>
+              <summary>Loan rules · .hedge/operator.json</summary>
+              <CodeBlock
+                label="operator.json"
+                language="json"
+                code={`{
+  "loan_asset": {
+    "chain_id": 296,
+    "symbol": "USDC",
+    "address": "0x0000000000000000000000000000000000001549"
+  },
+  "accepted_collateral": {
+    "chain_id": 84532,
+    "symbol": "USDC",
+    "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  },
+  "max_loan_amount": "10",
+  "collateral_ratio": "2",
+  "financing_charge_percent": "2",
+  "term_days": 30,
+  "repay_with_collateral": true,
+  "eligible_borrowers": []
+}`}
+              />
               <p>
-                The supplied <code>packages/nextjs/.hedge/hedge.config.json</code> selects the
-                shared contracts. Set its <code>operator</code> to your wallet and{" "}
-                <code>operator_url</code> to your backend endpoint. Liquidity commands store
-                recovery records and receipts in your configured database. Each operator owns its
-                balance, offers and loan rules on the shared contracts.
+                An empty borrower list allows everyone who meets the terms. Assets must match the
+                selected contracts. Restart after rule edits; accepted loans retain their agreed
+                terms.
               </p>
-            </div>
+            </details>
+            <details>
+              <summary>Public settings · .hedge/hedge.config.json</summary>
+              <CodeBlock
+                label="hedge.config.json"
+                language="json"
+                code={`{
+  "deployment_file": "deployments/testnet.json",
+  "operator": "<HEDERA_OPERATOR_ADDRESS>",
+  "operator_url": "http://127.0.0.1:3003/testnet",
+  "rpc": {
+    "hedera": "https://testnet.hashio.io/api",
+    "base": "https://sepolia.base.org"
+  },
+  "mirror_url": "https://testnet.mirrornode.hedera.com"
+}`}
+              />
+              <p>
+                The supplied deployment selects the shared contracts. Init fills your operator
+                address; set the endpoint to your backend. Startup verifies your settings and serves
+                the resolved public config at <code>/hedge.config.json</code>.
+              </p>
+            </details>
+            <h3>4. Fund wallets and deposit liquidity</h3>
+            <ul>
+              <li>
+                Operator: Hedera USDC <code>0.0.5449</code> for lending and HBAR above the default 5
+                HBAR gas reserve.
+              </li>
+              <li>Relay: Base Sepolia ETH for gas.</li>
+              <li>
+                Borrower: Base USDC collateral and ETH, plus Hedera HBAR and USDC for gas and
+                repayment.
+              </li>
+            </ul>
             <p>
-              Apps customizing contract source can run <code>npm run hedge -- deploy</code> to
-              deploy their own version and configure its new addresses. Existing contracts keep
-              their code and accepted loans.
+              Fund HBAR first, then associate <code>0.0.5449</code> if automatic token association
+              is unavailable. This token must come from a holder or compatible pool; Circle’s Hedera
+              test token <code>0.0.429274</code> is different. A 1 USDC loan requires 2 Base USDC
+              collateral and 1.02 USDC repayment.
             </p>
+            <CodeBlock code="npm run hedge -- liquidity deposit 5" />
+            <p>
+              Stop managed services before deposits or withdrawals. Retry to resume an interrupted
+              transaction.
+            </p>
+            <h3>5. Start your platform</h3>
+            <CodeBlock code="npm run hedge -- start" />
             <p>
               Start runs your backend with your operator, rules and liquidity, plus the bundled
               website. Startup prints both URLs. Use Hedge in your own app with the integration
-              below; <code>/demo</code> is the included swap example. The website serves
-              <code>hedge.config.json</code> at <code>/hedge.config.json</code>. Local signing stays
-              on loopback.
+              below; <code>/demo</code> is the included USDC → HBAR swap using SaucerSwap on Hedera
+              Testnet. Borrowers connect and sign with their own wallets. The supplied test service
+              runs on loopback.
+            </p>
+            <p>Stop your services:</p>
+            <CodeBlock code="npm run hedge -- stop" />
+            <p>
+              Use <code>npm run hedge -- restart</code> after config or code edits. Apps changing
+              contract source can stop services and run <code>npm run hedge -- deploy</code> for a
+              new pair; existing contracts and loan obligations remain intact.
             </p>
             <p>
               <Link href="/demo">Open the swap demo →</Link>
@@ -120,21 +189,36 @@ export default function DocsPage() {
             />
             <p>In your React 19 app, install the four tarballs and copy the public config:</p>
             <CodeBlock
-              code={`npm install /tmp/hedge-packages/hedge-{schema,bindings,sdk,frontend}-0.1.0.tgz\nmkdir -p public\ncurl -fsS http://127.0.0.1:3002/hedge.config.json -o public/hedge.config.json`}
+              code={`npm install \\
+  /tmp/hedge-packages/hedge-{schema,bindings,sdk,frontend}-0.1.0.tgz
+mkdir -p public
+curl -fsS http://127.0.0.1:3002/hedge.config.json \\
+  -o public/hedge.config.json`}
             />
+            <p>
+              Use your running website’s URL to fetch the config. Set its <code>operator_url</code>
+              to your backend and allow the app origin in the root <code>CORS_ORIGINS</code>. You
+              can also pass the provider a hosted <code>config</code> URL.
+            </p>
             <p>Mount one provider inside your app’s wallet setup:</p>
-            <CodeBlock label="app.tsx" code={`"use client";\n${integrationCode}`} language="tsx" />
+            <CodeBlock
+              label="app.tsx"
+              code={`"use client";\n\n${integrationCode};`}
+              language="tsx"
+            />
             <p>
               <code>appWallet</code> supplies Base and Hedera wallet connections and asks users to
               sign transactions. <code>shortfall</code> is the amount needed, as a decimal string
-              computed from the real balance. <code>resumeAppAction</code> runs after confirmed
-              funding when the user chooses to continue. Your app chooses the action and button
-              label; swapping is the reference example. Further transactions need wallet approval.
+              computed from the real balance, such as <code>"0.1"</code>. Hedera wallet identities
+              include the account ID. <code>resumeAppAction</code> runs after confirmed funding when
+              the user chooses to continue. Your app chooses the action and button label; swapping
+              is the reference example. Further transactions need wallet approval.
             </p>
             <p>
               The provider loads public config, verifies contracts and mounts one modal. It includes
               styles. Wallet credentials and operator keys stay out of public config. Configure a
-              real backend and wallet services for a hosted app.
+              real backend and wallet services for a hosted app; the supplied loopback test service
+              cannot serve remote users.
             </p>
           </section>
           <section className="guide-section" id="protocol">
@@ -156,7 +240,8 @@ export default function DocsPage() {
               <li>
                 Repay in Hedera USDC and claim Base collateral, or use the agreed collateral
                 repayment option. Base pays the operator and returns the remainder; CCIP confirms
-                repayment on Hedera.
+                repayment on Hedera. The operator must rebalance Base receipts separately to
+                replenish Hedera liquidity.
               </li>
               <li>
                 After the repayment deadline, the operator can declare default. The agreed recovery
@@ -173,29 +258,48 @@ export default function DocsPage() {
             </p>
           </section>
           <section className="guide-section" id="evidence">
-            <h2>Confirmed testnet runs</h2>
+            <h2>Recorded testnet runs</h2>
             <p>
-              A 0.1 USDC loan used 0.2 Base USDC collateral. Repayment paid the operator 0.102 Base
-              USDC and returned 0.098 Base USDC to the borrower.
+              Hedera Testnet and Base Sepolia. Receipt links identify the contracts used in each
+              run.
             </p>
+            {testRuns.map(({ title, description, receipts }) => (
+              <div key={title}>
+                <h3>{title}</h3>
+                <p>{description}</p>
+                <details>
+                  <summary>Transaction receipts</summary>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">Step</th>
+                        <th scope="col">Receipt</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {receipts.map(({ step, label, url }) => (
+                        <tr key={step}>
+                          <td>{step}</td>
+                          <td>
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              aria-label={`${step} receipt`}
+                            >
+                              {label}
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </details>
+              </div>
+            ))}
             <p>
-              Base payment and return:{" "}
-              <TransactionLink
-                chainId={84532}
-                hash="0x431b26c7724f18ab5a19fe058806d5291a4761ce34427d6f943cd325262671ed"
-                label="Base payment and return"
-              />
-              {" · "}
-              Hedera repayment confirmation:{" "}
-              <TransactionLink
-                chainId={296}
-                hash="0xc5de9e8e4c4a36fc079fbd554bfa11bec2b75ab58a053951948339af73bc8501"
-                label="Hedera repayment confirmation"
-              />
-            </p>
-            <p>
-              Hedge runs on Hedera Testnet and Base Sepolia. Full receipts are in the repository
-              README.
+              Run <code>npm run check</code> for local validation. Last verified coverage: 333
+              TypeScript and 150 Solidity tests. These recorded runs are testnet evidence.
             </p>
           </section>
         </div>
