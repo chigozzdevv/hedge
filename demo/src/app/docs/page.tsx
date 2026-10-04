@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { TransactionLink } from "@hedge/frontend";
 import { CodeBlock } from "@/components/code-block";
 import { integrationCode } from "@/lib/site";
 
@@ -177,13 +178,19 @@ export default function DocsPage() {
               USDC and returned 0.098 Base USDC to the borrower.
             </p>
             <p>
-              <a href="https://sepolia.basescan.org/tx/0x431b26c7724f18ab5a19fe058806d5291a4761ce34427d6f943cd325262671ed">
-                Base payment and return ↗
-              </a>
+              Base payment and return:{" "}
+              <TransactionLink
+                chainId={84532}
+                hash="0x431b26c7724f18ab5a19fe058806d5291a4761ce34427d6f943cd325262671ed"
+                label="Base payment and return"
+              />
               {" · "}
-              <a href="https://hashscan.io/testnet/transaction/0xc5de9e8e4c4a36fc079fbd554bfa11bec2b75ab58a053951948339af73bc8501">
-                Hedera repayment confirmation ↗
-              </a>
+              Hedera repayment confirmation:{" "}
+              <TransactionLink
+                chainId={296}
+                hash="0xc5de9e8e4c4a36fc079fbd554bfa11bec2b75ab58a053951948339af73bc8501"
+                label="Hedera repayment confirmation"
+              />
             </p>
             <p>
               Hedge runs on Hedera Testnet and Base Sepolia. Full receipts are in the repository

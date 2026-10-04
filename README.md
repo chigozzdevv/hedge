@@ -47,29 +47,29 @@ and returned **0.098 Base USDC** to the borrower. Confirmed balances and Hedera 
 `Repaid`, collateral `settled`, **0 due**. Hedera lending capital stayed at **4.9 USDC**;
 the Base payment was not credited as Hedera liquidity.
 
-| Step                           | Receipt                                                                                                              |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| Accept loan                    | [Hedera](https://hashscan.io/testnet/transaction/0xec81f3df9694a61f8fb36e59e71cd7f993eca141322cba063b2aa29a5fef88af) |
-| Lock collateral                | [Base](https://sepolia.basescan.org/tx/0x40e45a1c8ad325507d60ee68ef115d53f6fd9439bfe2e38862f63b7acaa6f017)           |
-| Receive funds                  | [Hedera](https://hashscan.io/testnet/transaction/0xe85ff5ddd2e92b6d81a0c838ab04aaf7be1fba86a4caafa179c12ae5a145d292) |
-| Authorize collateral payment   | [Hedera](https://hashscan.io/testnet/transaction/0x6ea76192ca5d2f18a3202428c1caf97062becfde6fcfa8fae71c7d7f68e0b89a) |
-| Pay operator; return remainder | [Base](https://sepolia.basescan.org/tx/0x431b26c7724f18ab5a19fe058806d5291a4761ce34427d6f943cd325262671ed)           |
-| Confirm repayment              | [Hedera](https://hashscan.io/testnet/transaction/0xc5de9e8e4c4a36fc079fbd554bfa11bec2b75ab58a053951948339af73bc8501) |
+| Step                           | Receipt                                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Accept loan                    | [0xec81f3df…ef88af ↗](https://hashscan.io/testnet/transaction/0xec81f3df9694a61f8fb36e59e71cd7f993eca141322cba063b2aa29a5fef88af) |
+| Lock collateral                | [0x40e45a1c…a6f017 ↗](https://sepolia.basescan.org/tx/0x40e45a1c8ad325507d60ee68ef115d53f6fd9439bfe2e38862f63b7acaa6f017)         |
+| Receive funds                  | [0xe85ff5dd…45d292 ↗](https://hashscan.io/testnet/transaction/0xe85ff5ddd2e92b6d81a0c838ab04aaf7be1fba86a4caafa179c12ae5a145d292) |
+| Authorize collateral payment   | [0x6ea76192…e0b89a ↗](https://hashscan.io/testnet/transaction/0x6ea76192ca5d2f18a3202428c1caf97062becfde6fcfa8fae71c7d7f68e0b89a) |
+| Pay operator; return remainder | [0x431b26c7…2671ed ↗](https://sepolia.basescan.org/tx/0x431b26c7724f18ab5a19fe058806d5291a4761ce34427d6f943cd325262671ed)         |
+| Confirm repayment              | [0xc5de9e8e…bc8501 ↗](https://hashscan.io/testnet/transaction/0xc5de9e8e4c4a36fc079fbd554bfa11bec2b75ab58a053951948339af73bc8501) |
 
 **Borrow, swap, repay and claim · 2026-10-02 · browser execution.**
 The confirmed 0.1 USDC loan flow:
 
-| Step                              | Receipt                                                                                                                              |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Accept loan                       | [Hedera](https://hashscan.io/testnet/transaction/0x56d5e827cb0d1f14b120067fb89656708872431fec564ea2775c6aeadc083175)                 |
-| Deliver agreement to Base         | [CCIP](https://ccip.chain.link/msg/0x32680aa0b2f32790478106f166cc713c9b24757200d3cc4a1635fa5374cf3ab7)                               |
-| Lock collateral                   | [Base](https://sepolia.basescan.org/tx/0xcee36861b57da105aeeb7b3ac01d26836eeab5c8cf1ef5f423c819ba57b4c261)                           |
-| Confirm custody on Hedera         | [CCIP](https://ccip.chain.link/msg/0xc502436907b7de3053ce9f13956d83f2d2630fd12f2243441606fa7a12955b08)                               |
-| Receive 0.1 USDC                  | [Hedera](https://hashscan.io/testnet/transaction/0xddc63e291c37104f573a883e88172370313106e461bef7059bc9b4910d43379a)                 |
-| Swap 0.01 USDC → 0.00441962 HBAR  | [SaucerSwap transaction](https://hashscan.io/testnet/transaction/0x6c71a2db50cbf64cce4d9b9d872c919eabb16a364ca9beca41c9931ae5ddd3d6) |
-| Repay loan                        | [Hedera](https://hashscan.io/testnet/transaction/0x59e126aef78c9157b58a5b0fc8afe4d2fb722c9261811b9187586bdd24a73eb8)                 |
-| Deliver repayment outcome to Base | [CCIP](https://ccip.chain.link/msg/0x7b20ae074fd40e386dd1752d80d85a1a43ece29e897dbaa067c43fca97994eeb)                               |
-| Claim collateral                  | [Base](https://sepolia.basescan.org/tx/0xa7a92d20fbaf7db85fa4568307a54eae31aecbe1d80d0dbc112bd95360c2e984)                           |
+| Step                              | Receipt                                                                                                                            |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Accept loan                       | [0x56d5e827…083175 ↗](https://hashscan.io/testnet/transaction/0x56d5e827cb0d1f14b120067fb89656708872431fec564ea2775c6aeadc083175) |
+| Deliver agreement to Base         | [0x32680aa0…cf3ab7 ↗](https://ccip.chain.link/msg/0x32680aa0b2f32790478106f166cc713c9b24757200d3cc4a1635fa5374cf3ab7)             |
+| Lock collateral                   | [0xcee36861…b4c261 ↗](https://sepolia.basescan.org/tx/0xcee36861b57da105aeeb7b3ac01d26836eeab5c8cf1ef5f423c819ba57b4c261)         |
+| Confirm custody on Hedera         | [0xc5024369…955b08 ↗](https://ccip.chain.link/msg/0xc502436907b7de3053ce9f13956d83f2d2630fd12f2243441606fa7a12955b08)             |
+| Receive 0.1 USDC                  | [0xddc63e29…43379a ↗](https://hashscan.io/testnet/transaction/0xddc63e291c37104f573a883e88172370313106e461bef7059bc9b4910d43379a) |
+| Swap 0.01 USDC → 0.00441962 HBAR  | [0x6c71a2db…ddd3d6 ↗](https://hashscan.io/testnet/transaction/0x6c71a2db50cbf64cce4d9b9d872c919eabb16a364ca9beca41c9931ae5ddd3d6) |
+| Repay loan                        | [0x59e126ae…a73eb8 ↗](https://hashscan.io/testnet/transaction/0x59e126aef78c9157b58a5b0fc8afe4d2fb722c9261811b9187586bdd24a73eb8) |
+| Deliver repayment outcome to Base | [0x7b20ae07…994eeb ↗](https://ccip.chain.link/msg/0x7b20ae074fd40e386dd1752d80d85a1a43ece29e897dbaa067c43fca97994eeb)             |
+| Claim collateral                  | [0xa7a92d20…c2e984 ↗](https://sepolia.basescan.org/tx/0xa7a92d20fbaf7db85fa4568307a54eae31aecbe1d80d0dbc112bd95360c2e984)         |
 
 Recorded timing: **165s acceptance → payout**, **42s lock → payout**, **691s full
 lifecycle**, including user actions. The tests used separate gas/repayment buffers.
@@ -365,9 +365,9 @@ Each operator owns its liquidity, offers and loans; shared deployment keys are u
 
 Verified **2026-10-04**: runtime bytecode, immutable settings, frozen peers, HTS association
 and no external native admin key. The initial operator deposited **5 USDC**:
-[Hedera deployment](https://hashscan.io/testnet/transaction/0x600e6307358ba393b6385b96929effe71a6ece74d28df7af7dc0c666b4513523),
-[Base deployment](https://sepolia.basescan.org/tx/0xad8097b598b183f8517786e54bfc92a39fc1ec7de831bc9027e443bda3a6efa5),
-[liquidity deposit](https://hashscan.io/testnet/transaction/0x714ef7aa7df072d4ebc22cd0855e3ef519754934a4bbe2ee00efae522138f110).
+Hedera deployment: [0x600e6307…513523 ↗](https://hashscan.io/testnet/transaction/0x600e6307358ba393b6385b96929effe71a6ece74d28df7af7dc0c666b4513523),
+Base deployment: [0xad8097b5…a6efa5 ↗](https://sepolia.basescan.org/tx/0xad8097b598b183f8517786e54bfc92a39fc1ec7de831bc9027e443bda3a6efa5),
+liquidity deposit: [0x714ef7aa…38f110 ↗](https://hashscan.io/testnet/transaction/0x714ef7aa7df072d4ebc22cd0855e3ef519754934a4bbe2ee00efae522138f110).
 Both assets have six decimals. Test custody uses 5 Base blocks; Hedera uses full finality.
 This test policy carries reorganization risk and is not a production default.
 
