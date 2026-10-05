@@ -196,47 +196,49 @@ curl -fsS http://127.0.0.1:3002/hedge.config.json \\
               code={`"use client";\n\n${integrationCode};`}
               language="tsx"
             />
-            <p>
-              <code>appWallet</code> connects Base and Hedera and requests signatures. Hedera
-              identities include the account ID. Your app passes a decimal shortfall or a function
-              that calculates it after connection. Pass <code>undefined</code> for an invalid form;{" "}
-              <code>"0"</code> means no borrowing. Existing loans remain manageable.
-            </p>
-            <p>
-              The provider includes one modal, its styles and config loading.{" "}
-              <code>resumeAppAction</code> runs when the user continues after confirmed funding.
-              Your app refreshes its balance and quote; the user confirms the next transaction.
-            </p>
+            <ul>
+              <li>
+                <code>wallet</code>: your app’s Base and Hedera wallet connections.
+              </li>
+              <li>
+                <code>amount</code>: the shortfall as a decimal string, or a function that
+                calculates it after connection. <code>undefined</code> disables new borrowing;{" "}
+                <code>"0"</code>
+                means no loan is needed.
+              </li>
+              <li>
+                <code>onContinue</code>: resume your app action when the user continues after
+                funding.
+              </li>
+            </ul>
           </section>
           <section className="guide-section" id="protocol">
             <h2>Loan rules</h2>
             <ul>
-              <li>Published offers reserve capital. Accepted terms cannot change.</li>
               <li>
-                Collateral is locked on Base before custody confirmation authorizes a Hedera payout.
+                Each app funds its own pool. Offers reserve liquidity; only unused capital can be
+                withdrawn.
               </li>
               <li>
-                Confirmed funding lets your app refresh its balance and quote. Users separately
-                approve their next transaction.
-              </li>
-              <li>Closing the modal or abandoning a swap does not cancel a funded loan.</li>
-              <li>
-                Repayment must equal the full agreed amount. Early repayment keeps the fixed charge;
-                network fees are separate.
+                Accepted terms stay fixed. Repay the full agreed amount; early repayment keeps the
+                charge.
               </li>
               <li>
-                Repay in Hedera USDC and claim Base collateral, or use the agreed collateral
-                repayment option. Base pays the operator and returns the remainder; CCIP confirms
-                repayment on Hedera. The operator must rebalance Base receipts separately to
-                replenish Hedera liquidity.
+                Borrowers can cancel before funding. Closing the modal does not cancel a funded
+                loan.
               </li>
               <li>
-                After the repayment deadline, the operator can declare default. The agreed recovery
-                recipient can then claim the pledged collateral.
+                Repay in Hedera USDC and claim Base collateral, or use{" "}
+                <strong>Repay with collateral</strong> if allowed. Base pays the operator and
+                returns the remainder; CCIP confirms repayment.
               </li>
               <li>
-                Base has no independent timeout release. Submitted messages and transactions are not
-                proof of delivery or funding.
+                Base repayments do not refill the Hedera pool. Operators move those funds
+                separately.
+              </li>
+              <li>
+                After the repayment deadline, the operator can declare default and recover the
+                agreed collateral.
               </li>
             </ul>
           </section>

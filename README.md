@@ -157,9 +157,8 @@ accepted loans retain their agreed terms.
 }
 ```
 
-`deployments/testnet.json` supplies verified contracts, CCIP settings and deployment blocks.
-Startup reads these files without overwriting your edits. The website resolves them into
-public config at `/hedge.config.json`.
+`deployments/testnet.json` supplies the shared contracts and network settings.
+The website serves your public settings at `/hedge.config.json`.
 
 The root `.env` is shared by the CLI, server and website. Set your database connection
 and enable the testnet service:
@@ -225,9 +224,8 @@ USDC if the account does not have automatic token association enabled.
 npm run hedge -- liquidity deposit 5
 ```
 
-The CLI verifies the signer/contracts, saves recovery records before broadcasting,
-and confirms the deposit. Stop managed services before deposits or withdrawals.
-Retry the same command to resume an interrupted transaction.
+Stop managed services before deposits or withdrawals. Retry the same command to
+resume an interrupted transaction.
 
 ### 5. Start your platform
 
@@ -265,9 +263,6 @@ operator, loan rules and liquidity; borrowers connect their own wallets.
 | `npm run hedge -- logs nextjs`          | Read website logs; use `server` for API logs                |
 | `npm run hedge -- stop`                 | Stop managed services; retain database, wallets and capital |
 
-Liquidity records, transaction recovery, service state and logs use your configured database.
-`.hedge/` contains only `wallets.json`, `operator.json` and `hedge.config.json`.
-
 ## React integration
 
 Requires React/React DOM 19 and the app’s Base/Hedera wallet services:
@@ -285,44 +280,25 @@ import { HedgeProvider, UseHedge } from "@hedge/frontend";
 </HedgeProvider>;
 ```
 
-`appWallet` implements [EvmWallet](packages/sdk/src/evm/evm-adapter.ts): connect/read
-wallet identity on each chain and request transaction approval. Hedera identities
-include the account ID. `amount` accepts a decimal string or a calculation function
-that receives the connected Hedera wallet. Your app reads the balance and returns
-the shortfall, e.g. `"0.1"`. `undefined` disables new borrowing; `"0"` means no loan
-is needed. Existing loans remain manageable with an empty form.
-The provider loads public config, verifies contracts and includes one modal and its styles.
-`onContinue` receives confirmed funding; your app implements its next action.
-Authenticated backends can supply the provider’s `request` transport.
+- `wallet`: your app's [Base and Hedera wallet connections](packages/sdk/src/evm/evm-adapter.ts).
+- `amount`: the shortfall as a decimal string, or a function that calculates it after connection.
+  `undefined` disables new borrowing; `"0"` means no loan is needed.
+- `onContinue`: resume your app action when the user continues after funding.
 
 For installation in another React app, see the [integration guide](https://hedge-hedera.vercel.app/docs#integration).
-
-`packages/nextjs` owns the Next.js website, `/docs`, and `/demo` swap/runtime code.
-`packages/frontend` contains only reusable Hedge integration. For website-only development,
-run `npm run dev:nextjs`; the working swap needs the backend started above.
 
 ## Deployment
 
 Apps reuse the shared contracts in [`deployments/testnet.json`](deployments/testnet.json).
-Each operator owns its liquidity, offers and loans; shared deployment keys are unnecessary.
+Each app supplies its own liquidity and sets its loan rules.
 
 | Network              | Current contract                                                                                                              | Asset                                             |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | Hedera Testnet (296) | [0xd2bec2da396a7b4c0f3b6ecf6daba410fba17bc6](https://hashscan.io/testnet/contract/0.0.10855309)                               | USDC `0.0.5449`                                   |
 | Base Sepolia (84532) | [0xd0abae3256b937463362eb2cb3f4cbfa2a858caf](https://sepolia.basescan.org/address/0xd0abae3256b937463362eb2cb3f4cbfa2a858caf) | USDC `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
 
-Verified **2026-10-04**: runtime bytecode, immutable settings, frozen peers, HTS association
-and no external native admin key. The initial operator deposited **5 USDC**:
-Hedera deployment: [0x600e6307…513523 ↗](https://hashscan.io/testnet/transaction/0x600e6307358ba393b6385b96929effe71a6ece74d28df7af7dc0c666b4513523),
-Base deployment: [0xad8097b5…a6efa5 ↗](https://sepolia.basescan.org/tx/0xad8097b598b183f8517786e54bfc92a39fc1ec7de831bc9027e443bda3a6efa5),
-liquidity deposit: [0x714ef7aa…38f110 ↗](https://hashscan.io/testnet/transaction/0x714ef7aa7df072d4ebc22cd0855e3ef519754934a4bbe2ee00efae522138f110).
-Both assets have six decimals. Test custody uses 5 Base blocks; Hedera uses full finality.
-This test policy carries reorganization risk and is not a production default.
-
-For custom contract source, stop services and run `npm run hedge -- deploy`.
-It builds/deploys a new pair, deposits 5 test USDC, verifies it and updates the deployment
-and public contract config. Existing loan obligations remain intact. Custom ABIs require
-matching bindings. Deployment retains **40 HBAR / 0.005 ETH** gas buffers.
+For custom contracts, run `npm run hedge -- stop`, then `npm run hedge -- deploy`.
+This creates a new pair with 5 USDC initial liquidity and updates your settings.
 
 ## Reference
 
@@ -331,57 +307,13 @@ Run `npm run check` to validate contracts, bindings and TypeScript.
 <details>
 <summary>Protocol rules</summary>
 
-- Hedera owns the canonical outcome; Base enforces the exact agreed pledge. Config,
-  database, browser checkpoints and backend responses have no settlement authority.
-- Each operator deposits and withdraws its own capital. Publishing an offer reserves
-  only its issuer’s capital. Hedera wallet repayment credits only the loan’s original operator. Collateral repayment pays its agreed Base recovery address without crediting Hedera capital.
-- Publishing an offer reserves capital. Offers are one-use; expired/withdrawn offers
-  release reservations. Committed capital cannot be withdrawn; accepted terms cannot change.
-- Principal equals payout. Repayment is the exact full amount; partial/overpayments
-  fail. Early repayment keeps the fixed charge. Network/message fees are separate.
-- Agreements bind instance, issuing operator, borrower, Base owner, token/amounts, deadlines, agreement
-  hash and return/recovery recipients. Each pledge has one final disposition.
-- Before payout the borrower can cancel; after the setup deadline cancellation is
-  public. Hedera releases the reservation, records return and rejects late funding.
-  Cancellation and payout serialize; funded loans require repayment.
-- Repayment is allowed through the payment deadline. Afterwards only the operator
-  can authorize default while funded; Base releases the exact pledge to the fixed
-  recovery recipient. Its market value is not guaranteed.
-- Optional collateral repayment fixes a Base payment amount in the accepted terms. Only the borrower may request it before the deadline. Hedera enters `Settling`, preventing wallet repayment/default races; Base atomically pays the operator and returns the remainder, then CCIP confirms `Repaid`. Token/message failures retain retryable obligations. Operators must rebalance Base receipts separately to replenish Hedera lending capital.
-- Base has no independent timeout release. Authenticated terminal outcomes survive
-  delayed/reordered messages; return and recovery cannot both claim the same lock.
-- Receivers check router, selector, frozen peer and full message binding. Exact
-  transfers, reentrancy guards and deduplication prevent short deposits/double payouts.
-- Immutable outboxes survive failed sends. Anyone can sponsor the same stored
-  message; submission is not delivery. Recovery preserves IDs and checks destination state.
-- Routers, setup signers, assets, networks and finality are fixed at deployment; peers freeze
-  once. No upgrades, peer replacement, arbitrary seizure, rescue or pause overrides.
-  Native Hedera authority is verified too; external admin/delete signing keys and key
-  lists are rejected. Its own ContractID represents the recorded absent admin key.
-
-CCIP uses V3 arguments/V2 receivers and the lane's default verifiers; only retry gas
-limits are caller-selected. Faster custody can disappear in a Base reorganization
-following Hedera payout. Keep production full finality until exposure/loss coverage
-has been reviewed; see [Chainlink's FTF guide](https://docs.chain.link/ccip/concepts/execution-latency/ftf-dapps).
-An outage can delay progress without allowing an agreement override.
-
-</details>
-
-<details>
-<summary>Architecture, operator API and advanced SDK</summary>
-
-| Path                                       | Responsibility                                   |
-| ------------------------------------------ | ------------------------------------------------ |
-| `packages/foundry`                         | EVM lending/custody, codecs and CCIP             |
-| `packages/schema`, `packages/bindings`     | Validation, compiler-derived registry/ABIs       |
-| `packages/sdk`                             | `create_hedge`, resource handles and EVM adapter |
-| `packages/frontend`                        | Reusable provider and Use Hedge modal            |
-| `server/src/features`, `server/src/shared` | Feature services and shared infrastructure       |
-| `packages/nextjs`                          | Next.js website and real swap at `/demo`         |
-| `scripts/hedge.ts`                         | Process/deployment management                    |
-
-Advanced clients use `create_hedge`, `intent()`, `credit(id)` and operator handles.
-The [integration guide](https://hedge-hedera.vercel.app/docs#integration) covers wallet setup and package installation.
+- Each app funds its own pool. Offers reserve liquidity; only unused capital can be withdrawn.
+- Accepted terms stay fixed. Repay the full agreed amount; early repayment keeps the charge.
+- Borrowers can cancel before funding. Closing the modal does not cancel a funded loan.
+- Repay in Hedera USDC and claim Base collateral, or use **Repay with collateral** if allowed.
+  Base pays the operator and returns the remainder; CCIP confirms repayment.
+- Base repayments do not refill the Hedera pool. Operators move those funds separately.
+- After the repayment deadline, the operator can declare default and recover the agreed collateral.
 
 </details>
 
